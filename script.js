@@ -23,7 +23,7 @@ const firebaseConfig = {
 // Inicializa o Firebase e a autenticação
 window.initFirebase = async () => {
     try {
-        const config = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_firebase_config) : firebaseConfig; // Usa a config do ambiente ou a local
+        const config = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : firebaseConfig; // Usa a config do ambiente ou a local
         window.firebaseApp = initializeApp(config);
         window.db = getFirestore(window.firebaseApp);
         window.auth = getAuth(window.firebaseApp);
@@ -213,8 +213,8 @@ const loadProducts = () => {
         return;
     }
 
-    const productsCollectionRef = window.firebaseModules.collection(window.db, `artifacts/${window.appId}/users/${window.userId}/products`);
-    window.firebaseModules.onSnapshot(productsCollectionRef, (snapshot) => {
+    const productsCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.userId}/products`);
+    onSnapshot(productsCollectionRef, (snapshot) => {
         const productsData = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
@@ -276,13 +276,13 @@ const handleProductSubmit = async (event) => {
     try {
         if (productId) {
             // Editando produto
-            const productRef = window.firebaseModules.doc(window.db, `artifacts/${window.appId}/users/${window.userId}/products`, productId);
-            await window.firebaseModules.updateDoc(productRef, productData);
+            const productRef = doc(window.db, `artifacts/${window.appId}/users/${window.userId}/products`, productId);
+            await updateDoc(productRef, productData);
             console.log("Produto atualizado com sucesso!");
             showModal('Sucesso!', `O produto "${name}" foi atualizado com sucesso.`, () => {});
         } else {
             // Adicionando novo produto
-            await window.firebaseModules.addDoc(window.firebaseModules.collection(window.db, `artifacts/${window.appId}/users/${window.userId}/products`), productData);
+            await addDoc(collection(window.db, `artifacts/${window.appId}/users/${window.userId}/products`), productData);
             console.log("Produto adicionado com sucesso!");
             showModal('Sucesso!', `O produto "${name}" foi adicionado ao estoque.`, () => {});
         }
@@ -330,7 +330,7 @@ const confirmDeleteProduct = (productId, productName) => {
 
 const deleteProduct = async (productId) => {
     try {
-        await window.firebaseModules.deleteDoc(window.firebaseModules.doc(window.db, `artifacts/${window.appId}/users/${window.userId}/products`, productId));
+        await deleteDoc(doc(window.db, `artifacts/${window.appId}/users/${window.userId}/products`, productId));
         console.log("Produto excluído com sucesso!");
         showModal('Sucesso!', 'Produto excluído com sucesso.', () => {});
     } catch (err) {
@@ -413,8 +413,8 @@ const loadCustomers = () => {
         return;
     }
 
-    const customersCollectionRef = window.firebaseModules.collection(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`);
-    window.firebaseModules.onSnapshot(customersCollectionRef, (snapshot) => {
+    const customersCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`);
+    onSnapshot(customersCollectionRef, (snapshot) => {
         const customersData = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
@@ -482,12 +482,12 @@ const handleCustomerSubmit = async (event) => {
 
     try {
         if (customerId) {
-            const customerRef = window.firebaseModules.doc(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`, customerId);
-            await window.firebaseModules.updateDoc(customerRef, customerData);
+            const customerRef = doc(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`, customerId);
+            await updateDoc(customerRef, customerData);
             console.log("Cliente atualizado com sucesso!");
             showModal('Sucesso!', `O cliente "${name}" foi atualizado com sucesso.`, () => {});
         } else {
-            await window.firebaseModules.addDoc(window.firebaseModules.collection(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`), customerData);
+            await addDoc(collection(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`), customerData);
             console.log("Cliente adicionado com sucesso!");
             showModal('Sucesso!', `O cliente "${name}" foi adicionado.`, () => {});
         }
@@ -533,7 +533,7 @@ const confirmDeleteCustomer = (customerId, customerName) => {
 
 const deleteCustomer = async (customerId) => {
     try {
-        await window.firebaseModules.deleteDoc(window.firebaseModules.doc(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`, customerId));
+        await deleteDoc(doc(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`, customerId));
         console.log("Cliente excluído com sucesso!");
         showModal('Sucesso!', 'Cliente excluído com sucesso.', () => {});
     } catch (err) {
@@ -594,12 +594,11 @@ const handlePay = async () => {
     }
 
     try {
-        const customerRef = window.firebaseModules.doc(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`, customerToPayId);
-        const newTotalDue = customer.totalDue - paymentAmount;
-        await window.firebaseModules.updateDoc(customerRef, { totalDue: newTotalDue });
+        const customerRef = doc(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`, customerToPayId);
+        await updateDoc(customerRef, { totalDue: newTotalDue });
 
         // Opcional: registrar a transação de pagamento
-        await window.firebaseModules.addDoc(window.firebaseModules.collection(window.db, `artifacts/${window.appId}/users/${window.userId}/transactions`), {
+        await addDoc(collection(window.db, `artifacts/${window.appId}/users/${window.userId}/transactions`), {
             type: 'payment',
             customerId: customerToPayId,
             customerName: customer.name,
@@ -713,8 +712,8 @@ const loadProductsForSale = () => {
         return;
     }
 
-    const productsCollectionRef = window.firebaseModules.collection(window.db, `artifacts/${window.appId}/users/${window.userId}/products`);
-    window.firebaseModules.onSnapshot(productsCollectionRef, (snapshot) => {
+    const productsCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.userId}/products`);
+    onSnapshot(productsCollectionRef, (snapshot) => {
         const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         currentProducts = productsData; // Atualiza a lista global de produtos
         displayAvailableProducts(productsData);
@@ -763,8 +762,8 @@ const loadCustomersForSale = () => {
         return;
     }
 
-    const customersCollectionRef = window.firebaseModules.collection(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`);
-    window.firebaseModules.onSnapshot(customersCollectionRef, (snapshot) => {
+    const customersCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`);
+    onSnapshot(customersCollectionRef, (snapshot) => {
         const customersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         currentCustomers = customersData; // Atualiza a lista global de clientes
         const select = document.getElementById('sale-customer-select');
@@ -910,7 +909,7 @@ window.processSale = async () => { // Tornada global
     try {
         // 1. Registrar a transação de venda
         const totalAmount = saleCart.reduce((acc, item) => acc + (item.sellPrice * item.quantityInCart), 0);
-        const transactionRef = await window.firebaseModules.addDoc(window.firebaseModules.collection(window.db, `artifacts/${window.appId}/users/${window.userId}/transactions`), {
+        const transactionRef = await addDoc(collection(window.db, `artifacts/${window.appId}/users/${window.userId}/transactions`), {
             type: 'sale',
             date: new Date().toISOString(),
             items: saleCart.map(item => ({
@@ -929,14 +928,14 @@ window.processSale = async () => { // Tornada global
 
         // 2. Atualizar o estoque dos produtos
         const batchUpdates = saleCart.map(async (item) => {
-            const productRef = window.firebaseModules.doc(window.db, `artifacts/${window.appId}/users/${window.userId}/products`, item.id);
+            const productRef = doc(window.db, `artifacts/${window.appId}/users/${window.userId}/products`, item.id);
             const currentProduct = currentProducts.find(p => p.id === item.id);
             if (currentProduct) {
                 const newQuantity = currentProduct.quantity - item.quantityInCart;
                 if (newQuantity < 0) {
                     throw new Error(`Estoque insuficiente para ${item.name}`); // Validação de último minuto
                 }
-                await window.firebaseModules.updateDoc(productRef, { quantity: newQuantity });
+                await updateDoc(productRef, { quantity: newQuantity });
             }
         });
         await Promise.all(batchUpdates);
@@ -944,11 +943,11 @@ window.processSale = async () => { // Tornada global
 
         // 3. Se for venda a prazo, atualizar a dívida do cliente
         if (currentPaymentType === 'credit' && selectedCustomerForSale) {
-            const customerRef = window.firebaseModules.doc(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`, selectedCustomerForSale);
+            const customerRef = doc(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`, selectedCustomerForSale);
             const currentCustomer = currentCustomers.find(c => c.id === selectedCustomerForSale);
             if (currentCustomer) {
                 const newTotalDue = (currentCustomer.totalDue || 0) + totalAmount;
-                await window.firebaseModules.updateDoc(customerRef, { totalDue: newTotalDue });
+                await updateDoc(customerRef, { totalDue: newTotalDue });
                 console.log(`Dívida do cliente ${currentCustomer.name} atualizada para ${formatCurrency(newTotalDue)}`);
             }
         }
@@ -1040,11 +1039,11 @@ const renderDashboardView = async () => {
 
     try {
         // Carregar Total de Vendas
-        const salesQuery = window.firebaseModules.query(
-            window.firebaseModules.collection(window.db, `artifacts/${window.appId}/users/${window.userId}/transactions`),
-            window.firebaseModules.where('type', '==', 'sale')
+        const salesQuery = query(
+            collection(window.db, `artifacts/${window.appId}/users/${window.userId}/transactions`),
+            where('type', '==', 'sale')
         );
-        const salesSnapshot = await window.firebaseModules.getDocs(salesQuery);
+        const salesSnapshot = await getDocs(salesQuery);
         let totalSalesAmount = 0;
         salesSnapshot.forEach(doc => {
             totalSalesAmount += doc.data().totalAmount || 0;
@@ -1052,8 +1051,8 @@ const renderDashboardView = async () => {
         document.getElementById('total-sales').textContent = formatCurrency(totalSalesAmount);
 
         // Carregar Dívida Total de Clientes
-        const customersCollectionRef = window.firebaseModules.collection(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`);
-        const customersSnapshot = await window.firebaseModules.getDocs(customersCollectionRef);
+        const customersCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`);
+        const customersSnapshot = await getDocs(customersCollectionRef);
         let totalDebtAmount = 0;
         customersSnapshot.forEach(doc => {
             totalDebtAmount += doc.data().totalDue || 0;
@@ -1061,8 +1060,8 @@ const renderDashboardView = async () => {
         document.getElementById('total-debt').textContent = formatCurrency(totalDebtAmount);
 
         // Carregar Últimas Transações
-        const transactionsCollectionRef = window.firebaseModules.collection(window.db, `artifacts/${window.appId}/users/${window.userId}/transactions`);
-        const transactionsSnapshot = await window.firebaseModules.getDocs(transactionsCollectionRef); // Get all for simplicity, could add orderBy and limit
+        const transactionsCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.userId}/transactions`);
+        const transactionsSnapshot = await getDocs(transactionsCollectionRef); // Get all for simplicity, could add orderBy and limit
         let transactions = [];
         transactionsSnapshot.forEach(doc => {
             transactions.push({ id: doc.id, ...doc.data() });
