@@ -1,3 +1,24 @@
+/* Importa a fonte do Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Roboto+Mono:wght@400;700&display=swap');
+
+/* Define as fontes globais */
+.font-chakra {
+    font-family: 'Chakra Petch', sans-serif;
+}
+
+.font-mono {
+    font-family: 'Roboto Mono', monospace;
+}
+
+/* Efeito de brilho neon para botões e elementos */
+.shadow-neon {
+    box-shadow: 0 0 5px #f97316, 0 0 10px #f97316, 0 0 15px #f97316;
+}
+
+.shadow-orange {
+    box-shadow: 0 0 8px #ea580c;
+}
+
 /* Custom Scrollbar Styles for WebKit browsers */
 .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
@@ -11,18 +32,15 @@
     background-color: #ea580c; /* Laranja um pouco mais escuro */
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-    background-color: #f3f4f6; /* gray-100 */
+    background-color: #1f2937; /* gray-800 */
     border-radius: 4px;
-}
-
-/* Base styles for lucide icons */
-i[data-lucide] {
-    display: inline-block;
-    vertical-align: middle;
 }
 
 /* Estilos para o botão de navegação ativo */
 .nav-active {
-    background-color: #2563eb; /* Azul (blue-600) do Tailwind */
+    background-color: #f97316; /* Laranja da logo */
     color: white;
+    font-weight: bold;
+    border-radius: 4px;
+    box-shadow: 0 0 5px #f97316;
 }
