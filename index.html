@@ -3,12 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestão de Estoque Tabacaria</title>
-    <!-- Tailwind CSS CDN --><!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fumo da Ilha - Gestão de Estoque</title>
     <!-- Link para o Tailwind CSS via CDN - ideal para desenvolvimento rápido -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -31,13 +25,13 @@
 
         // Configuração do Firebase - SUBSTITUA PELAS SUAS CREDENCIAIS
         const firebaseConfig = {
-          apiKey: "AIzaSyBszbg1MsMFxK5Si_VuXzdQZTpKfAmiAME",
-          authDomain: "fdiestoque.firebaseapp.com",
-          projectId: "fdiestoque",
-          storageBucket: "fdiestoque.firebasestorage.app",
-          messagingSenderId: "125497955543",
-          appId: "1:125497955543:web:c820dcb7e2a99ffdcc0c92"
-};
+            apiKey: "",
+            authDomain: "",
+            projectId: "",
+            storageBucket: "",
+            messagingSenderId: "",
+            appId: ""
+        };
 
         // Inicializa o Firebase e a autenticação
         const initFirebase = async () => {
@@ -130,99 +124,6 @@
             lucide.createIcons();
             // A atualização do ID do aplicativo no footer foi removida junto com o footer
         });
-    </script>
-</body>
-</html>
-
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons CDN -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        window.firebase = {
-            initializeApp: initializeApp,
-            getAuth: getAuth,
-            signInAnonymously: signInAnonymously,
-            signInWithCustomToken: signInWithCustomToken,
-            onAuthStateChanged: onAuthStateChanged,
-            getFirestore: getFirestore,
-            collection: collection,
-            addDoc: addDoc,
-            getDocs: getDocs,
-            updateDoc: updateDoc,
-            deleteDoc: deleteDoc,
-            doc: doc,
-            onSnapshot: onSnapshot,
-            query: query,
-            where: where
-        };
-    </script>
-    <!-- Seu CSS customizado -->
-    <link rel="stylesheet" href="style.css">
-</head>
-<body class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 text-gray-900 font-sans antialiased flex flex-col">
-
-    <!-- Navbar -->
-    <nav class="bg-gray-800 text-white p-4 shadow-lg sticky top-0 z-10">
-        <div class="container mx-auto flex flex-wrap justify-between items-center">
-            <h1 class="text-2xl font-bold flex items-center">
-                <i data-lucide="package" class="mr-2"></i> Gestão de Tabacaria
-            </h1>
-            <div class="flex space-x-4 mt-2 md:mt-0">
-                <button id="nav-estoque" class="px-4 py-2 rounded-lg flex items-center transition-colors bg-blue-600 hover:bg-gray-700">
-                    <i data-lucide="package" class="mr-2" size="18"></i> Estoque
-                </button>
-                <button id="nav-clientes" class="px-4 py-2 rounded-lg flex items-center transition-colors hover:bg-gray-700">
-                    <i data-lucide="users" class="mr-2" size="18"></i> Clientes
-                </button>
-                <button id="nav-vendas" class="px-4 py-2 rounded-lg flex items-center transition-colors hover:bg-gray-700">
-                    <i data-lucide="shopping-cart" class="mr-2" size="18"></i> Vendas
-                </button>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Conteúdo principal -->
-    <main id="app-content" class="container mx-auto p-6 flex-grow">
-        <!-- O conteúdo será carregado aqui pelo JavaScript -->
-        <div id="loading-indicator" class="text-center text-lg mt-8 hidden">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-            <p class="mt-4">Carregando...</p>
-        </div>
-    </main>
-
-    <!-- Footer -->
-    <footer class="bg-gray-800 text-white p-4 text-center mt-8 shadow-inner">
-        <p class="text-sm">Desenvolvido com ❤️ para a sua Tabacaria</p>
-        <p id="user-id-display" class="text-xs mt-1"></p>
-        <p id="app-id-display" class="text-xs mt-1"></p>
-    </footer>
-
-    <!-- Modal de Confirmação (customizado para substituir alert/confirm) -->
-    <div id="custom-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
-            <h3 id="modal-title" class="text-xl font-bold mb-4 text-gray-800"></h3>
-            <div id="modal-message" class="mb-6 text-gray-700"></div>
-            <div class="flex justify-end space-x-3">
-                <button id="modal-cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors">
-                    Cancelar
-                </button>
-                <button id="modal-confirm-btn" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
-                    Confirmar
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Seu JavaScript -->
-    <script type="module" src="script.js"></script>
-    <!-- Inicializa os ícones Lucide -->
-    <script>
-        lucide.createIcons();
     </script>
 </body>
 </html>
