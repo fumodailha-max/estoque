@@ -1,20 +1,22 @@
 // Importa os módulos do Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, onSnapshot, query, where, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Variáveis globais para Firebase (serão inicializadas aqui)
+// Variáveis globais para Firebase e estado do usuário
 window.firebaseApp = null;
 window.db = null;
 window.auth = null;
-window.userId = null;
-window.appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; // Captura o ID do aplicativo
-let currentProducts = []; // Variável global para produtos
-let currentCustomers = []; // Variável global para clientes
-let saleCart = []; // Variável global para o carrinho
+window.currentUser = { uid: null, role: null };
+window.appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+// Variáveis de estado do aplicativo
+let currentProducts = [];
+let currentCustomers = [];
+let saleCart = [];
 let selectedCustomerForSale = '';
 let currentPaymentType = 'cash';
-let customerToPayId = null; // Guarda o ID do cliente para pagamento
+let customerToPayId = null;
 
 // Configuração do Firebase - SUBSTITUA PELAS SUAS CREDENCIAIS
 const firebaseConfig = {
@@ -26,40 +28,83 @@ const firebaseConfig = {
     appId: "1:125497955543:web:c820dcb7e2a99ffdcc0c92"
 };
 
-// Inicializa o Firebase e a autenticação
-window.initFirebase = async () => {
+// --- Funções de Autenticação e Inicialização ---
+const initFirebaseAndAuth = async () => {
     try {
-        const config = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : firebaseConfig; // Usa a config do ambiente ou a local
+        const config = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : firebaseConfig;
         window.firebaseApp = initializeApp(config);
         window.db = getFirestore(window.firebaseApp);
         window.auth = getAuth(window.firebaseApp);
 
-        // Escuta as mudanças de estado de autenticação
         onAuthStateChanged(window.auth, async (user) => {
             if (user) {
-                window.userId = user.uid;
-                console.log("Usuário autenticado:", window.userId);
-            } else {
-                const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-                if (initialAuthToken) {
-                    await signInWithCustomToken(window.auth, initialAuthToken);
+                console.log("Usuário autenticado:", user.uid);
+                // Busca o documento do usuário para obter o 'role'
+                const userRef = doc(window.db, `users`, user.uid);
+                const userSnap = await getDoc(userRef);
+                
+                if (userSnap.exists()) {
+                    window.currentUser.uid = user.uid;
+                    window.currentUser.role = userSnap.data().role;
+                    console.log("Role do usuário:", window.currentUser.role);
+                    // Redireciona para a página principal após o login
+                    window.location.href = 'index.html'; 
                 } else {
-                    await signInAnonymously(window.auth);
+                    console.log("Nenhum documento de usuário encontrado. Saindo.");
+                    window.auth.signOut();
+                }
+
+            } else {
+                window.currentUser.uid = null;
+                window.currentUser.role = null;
+                // Redireciona para a tela de login se não houver usuário autenticado e a página atual não for a de login
+                if (window.location.pathname.endsWith('index.html')) {
+                    window.location.href = 'login.html';
                 }
             }
-            // Quando o Firebase estiver pronto, carrega a página de estoque
-            window.loadPage('estoque');
         });
 
     } catch (error) {
         console.error("Erro ao inicializar Firebase:", error);
-        document.getElementById('main-content').innerHTML = `<div class="text-center text-red-500 text-lg mt-8">Erro ao carregar o Firebase. Verifique suas credenciais.</div>`;
     }
 };
 
-// Garante que o DOM esteja totalmente carregado antes de inicializar o Firebase e o aplicativo
+const handleLoginForm = async (event) => {
+    event.preventDefault();
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const errorMessageElem = document.getElementById('error-message');
+    errorMessageElem.classList.add('hidden');
+
+    try {
+        const userCredential = await signInWithEmailAndPassword(window.auth, email, password);
+        // O onAuthStateChanged irá cuidar do resto do redirecionamento
+    } catch (error) {
+        let message = "Erro ao fazer login. Tente novamente.";
+        if (error.code === 'auth/invalid-email' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+            message = "E-mail ou senha inválidos.";
+        }
+        errorMessageElem.textContent = message;
+        errorMessageElem.classList.remove('hidden');
+        console.error("Erro de login:", error);
+    }
+};
+
+// Garante que o DOM esteja totalmente carregado
 document.addEventListener('DOMContentLoaded', () => {
-    window.initFirebase(); // Chama a função de inicialização do Firebase definida globalmente
+    // Inicializa o Firebase
+    initFirebaseAndAuth();
+
+    // Adiciona o event listener para o formulário de login, se ele existir na página
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', handleLoginForm);
+    }
+
+    // Inicializa os ícones Lucide
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
 });
 
 // Helper para formatar moeda
@@ -108,6 +153,19 @@ const hideModal = () => {
 window.loadPage = (pageName) => {
     const mainContent = document.getElementById('main-content');
     mainContent.innerHTML = ''; // Limpa o conteúdo atual
+
+    // Verifica se a página solicitada é o Dashboard e se o usuário tem permissão
+    if (pageName === 'dashboard' && window.currentUser.role !== 'admin') {
+        mainContent.innerHTML = `<div class="bg-gray-800 rounded-lg p-8 text-center mt-12">
+            <h2 class="text-3xl font-bold text-red-500 mb-4">Acesso Negado</h2>
+            <p class="text-gray-400">Você não tem permissão para acessar o Dashboard.</p>
+        </div>`;
+        // Remove a classe 'nav-active' de todos os botões, mas não ativa nenhum
+        document.querySelectorAll('nav button').forEach(btn => {
+            btn.classList.remove('nav-active');
+        });
+        return;
+    }
 
     // Remove a classe 'nav-active' de todos os botões e adiciona ao botão clicado
     document.querySelectorAll('nav button').forEach(btn => {
@@ -159,7 +217,7 @@ window.confirmDeleteProduct = (productId, productName) => {
 
 const deleteProduct = async (productId) => {
     try {
-        await deleteDoc(doc(window.db, `artifacts/${window.appId}/users/${window.userId}/products`, productId));
+        await deleteDoc(doc(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/products`, productId));
         console.log("Produto excluído com sucesso!");
         showModal('Sucesso!', 'Produto excluído com sucesso.', () => {});
     } catch (err) {
@@ -191,7 +249,7 @@ window.confirmDeleteCustomer = (customerId, customerName) => {
 
 const deleteCustomer = async (customerId) => {
     try {
-        await deleteDoc(doc(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`, customerId));
+        await deleteDoc(doc(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/customers`, customerId));
         console.log("Cliente excluído com sucesso!");
         showModal('Sucesso!', 'Cliente excluído com sucesso.', () => {});
     } catch (err) {
@@ -250,12 +308,11 @@ const handlePay = async () => {
     }
 
     try {
-        const newTotalDue = (customer.totalDue || 0) - paymentAmount; // FIX: Variável não declarada
-        const customerRef = doc(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`, customerToPayId);
+        const newTotalDue = (customer.totalDue || 0) - paymentAmount;
+        const customerRef = doc(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/customers`, customerToPayId);
         await updateDoc(customerRef, { totalDue: newTotalDue });
 
-        // Opcional: registrar a transação de pagamento
-        await addDoc(collection(window.db, `artifacts/${window.appId}/users/${window.userId}/transactions`), {
+        await addDoc(collection(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/transactions`), {
             type: 'payment',
             customerId: customerToPayId,
             customerName: customer.name,
@@ -372,12 +429,12 @@ const renderEstoqueView = () => {
 };
 
 const loadProducts = () => {
-    if (!window.db || !window.userId) {
-        document.getElementById('products-table-body').innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-sm text-red-500">Firebase não inicializado.</td></tr>`;
+    if (!window.db || !window.currentUser.uid) {
+        document.getElementById('products-table-body').innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-center text-sm text-red-500">Firebase não inicializado ou usuário não autenticado.</td></tr>`;
         return;
     }
 
-    const productsCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.userId}/products`);
+    const productsCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/products`);
     onSnapshot(productsCollectionRef, (snapshot) => {
         const productsData = snapshot.docs.map(doc => ({
             id: doc.id,
@@ -413,8 +470,8 @@ const displayProducts = (products) => {
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">${formatCurrency(product.costPrice)}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">${formatCurrency(product.sellPrice)}</td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                <button onclick="editProduct('${product.id}')" class="text-blue-400 hover:text-blue-500 transition-colors">Editar</button>
-                <button onclick="confirmDeleteProduct('${product.id}', '${product.name}')" class="text-red-400 hover:text-red-500 transition-colors">Excluir</button>
+                <button onclick="window.editProduct('${product.id}')" class="text-blue-400 hover:text-blue-500 transition-colors">Editar</button>
+                <button onclick="window.confirmDeleteProduct('${product.id}', '${product.name}')" class="text-red-400 hover:text-red-500 transition-colors">Excluir</button>
             </td>
         `;
     });
@@ -442,13 +499,13 @@ const handleProductSubmit = async (event) => {
     try {
         if (productId) {
             // Editando produto
-            const productRef = doc(window.db, `artifacts/${window.appId}/users/${window.userId}/products`, productId);
+            const productRef = doc(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/products`, productId);
             await updateDoc(productRef, productData);
             console.log("Produto atualizado com sucesso!");
             showModal('Sucesso!', `O produto "${name}" foi atualizado com sucesso.`, () => {});
         } else {
             // Adicionando novo produto
-            await addDoc(collection(window.db, `artifacts/${window.appId}/users/${window.userId}/products`), productData);
+            await addDoc(collection(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/products`), productData);
             console.log("Produto adicionado com sucesso!");
             showModal('Sucesso!', `O produto "${name}" foi adicionado ao estoque.`, () => {});
         }
@@ -538,12 +595,12 @@ const renderClientesView = () => {
 };
 
 const loadCustomers = () => {
-    if (!window.db || !window.userId) {
-        document.getElementById('customers-table-body').innerHTML = `<tr><td colspan="4" class="px-6 py-4 text-center text-sm text-red-500">Firebase não inicializado.</td></tr>`;
+    if (!window.db || !window.currentUser.uid) {
+        document.getElementById('customers-table-body').innerHTML = `<tr><td colspan="4" class="px-6 py-4 text-center text-sm text-red-500">Firebase não inicializado ou usuário não autenticado.</td></tr>`;
         return;
     }
 
-    const customersCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`);
+    const customersCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/customers`);
     onSnapshot(customersCollectionRef, (snapshot) => {
         const customersData = snapshot.docs.map(doc => ({
             id: doc.id,
@@ -582,9 +639,9 @@ const displayCustomers = (customers) => {
                 </span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                <button onclick="openPayModal('${customer.id}')" class="text-green-400 hover:text-green-500 transition-colors mr-2" ${totalDue <= 0 ? 'disabled' : ''}>Pagar</button>
-                <button onclick="editCustomer('${customer.id}')" class="text-blue-400 hover:text-blue-500 transition-colors mr-2">Editar</button>
-                <button onclick="confirmDeleteCustomer('${customer.id}', '${customer.name}')" class="text-red-400 hover:text-red-500 transition-colors">Excluir</button>
+                <button onclick="window.openPayModal('${customer.id}')" class="text-green-400 hover:text-green-500 transition-colors mr-2" ${totalDue <= 0 ? 'disabled' : ''}>Pagar</button>
+                <button onclick="window.editCustomer('${customer.id}')" class="text-blue-400 hover:text-blue-500 transition-colors mr-2">Editar</button>
+                <button onclick="window.confirmDeleteCustomer('${customer.id}', '${customer.name}')" class="text-red-400 hover:text-red-500 transition-colors">Excluir</button>
             </td>
         `;
     });
@@ -612,12 +669,12 @@ const handleCustomerSubmit = async (event) => {
 
     try {
         if (customerId) {
-            const customerRef = doc(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`, customerId);
+            const customerRef = doc(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/customers`, customerId);
             await updateDoc(customerRef, customerData);
             console.log("Cliente atualizado com sucesso!");
             showModal('Sucesso!', `O cliente "${name}" foi atualizado com sucesso.`, () => {});
         } else {
-            await addDoc(collection(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`), customerData);
+            await addDoc(collection(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/customers`), customerData);
             console.log("Cliente adicionado com sucesso!");
             showModal('Sucesso!', `O cliente "${name}" foi adicionado.`, () => {});
         }
@@ -910,7 +967,7 @@ window.processSale = async () => { // Tornada global
     try {
         // 1. Registrar a transação de venda
         const totalAmount = saleCart.reduce((acc, item) => acc + (item.sellPrice * item.quantityInCart), 0);
-        const transactionRef = await addDoc(collection(window.db, `artifacts/${window.appId}/users/${window.userId}/transactions`), {
+        const transactionRef = await addDoc(collection(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/transactions`), {
             type: 'sale',
             date: new Date().toISOString(),
             items: saleCart.map(item => ({
@@ -930,7 +987,7 @@ window.processSale = async () => { // Tornada global
 
         // 2. Atualizar o estoque dos produtos
         const batchUpdates = saleCart.map(async (item) => {
-            const productRef = doc(window.db, `artifacts/${window.appId}/users/${window.userId}/products`, item.id);
+            const productRef = doc(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/products`, item.id);
             const currentProduct = currentProducts.find(p => p.id === item.id);
             if (currentProduct) {
                 const newQuantity = currentProduct.quantity - item.quantityInCart;
@@ -945,7 +1002,7 @@ window.processSale = async () => { // Tornada global
 
         // 3. Se for venda a prazo, atualizar a dívida do cliente
         if (currentPaymentType === 'credit' && selectedCustomerForSale) {
-            const customerRef = doc(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`, selectedCustomerForSale);
+            const customerRef = doc(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/customers`, selectedCustomerForSale);
             const currentCustomer = currentCustomers.find(c => c.id === selectedCustomerForSale);
             if (currentCustomer) {
                 const newTotalDue = (currentCustomer.totalDue || 0) + totalAmount;
@@ -1053,10 +1110,10 @@ const renderDashboardView = async () => {
 };
 
 const loadDashboardData = async () => {
-    if (!window.db || !window.userId) {
+    if (!window.db || !window.currentUser.uid) {
         document.getElementById('total-sales').textContent = "Erro";
         document.getElementById('total-debt').textContent = "Erro";
-        document.getElementById('transactions-table-body').innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-sm text-red-500">Firebase não inicializado.</td></tr>`;
+        document.getElementById('transactions-table-body').innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-sm text-red-500">Firebase não inicializado ou usuário não autenticado.</td></tr>`;
         return;
     }
 
@@ -1065,7 +1122,7 @@ const loadDashboardData = async () => {
         const endDate = document.getElementById('end-date').value;
 
         // Carregar Dívida Total de Clientes
-        const customersCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`);
+        const customersCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/customers`);
         const customersSnapshot = await getDocs(customersCollectionRef);
         let totalDebtAmount = 0;
         customersSnapshot.forEach(doc => {
@@ -1074,7 +1131,7 @@ const loadDashboardData = async () => {
         document.getElementById('total-debt').textContent = formatCurrency(totalDebtAmount);
 
         // Carregar Total de Vendas e Últimas Transações com filtro
-        const transactionsCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.userId}/transactions`);
+        const transactionsCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/transactions`);
         let transactionsQuery = query(transactionsCollectionRef);
 
         if (startDate) {
@@ -1141,12 +1198,12 @@ const loadDashboardData = async () => {
 };
 
 const loadProductsForSale = () => {
-    if (!window.db || !window.userId) {
-        document.getElementById('available-products-list').innerHTML = `<div class="col-span-full text-center text-red-500 py-8">Firebase não inicializado.</div>`;
+    if (!window.db || !window.currentUser.uid) {
+        document.getElementById('available-products-list').innerHTML = `<div class="col-span-full text-center text-red-500 py-8">Firebase não inicializado ou usuário não autenticado.</div>`;
         return;
     }
 
-    const productsCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.userId}/products`);
+    const productsCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/products`);
     onSnapshot(productsCollectionRef, (snapshot) => {
         const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         currentProducts = productsData; // Atualiza a lista global de produtos
@@ -1191,12 +1248,12 @@ const displayAvailableProducts = (products) => {
 };
 
 const loadCustomersForSale = () => {
-    if (!window.db || !window.userId) {
+    if (!window.db || !window.currentUser.uid) {
         document.getElementById('sale-customer-select').innerHTML = `<option value="">Erro ao carregar clientes</option>`;
         return;
     }
 
-    const customersCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`);
+    const customersCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/customers`);
     onSnapshot(customersCollectionRef, (snapshot) => {
         const customersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         currentCustomers = customersData; // Atualiza a lista global de clientes
