@@ -138,11 +138,25 @@ const renderEstoqueView = () => {
                 <i data-lucide="package" class="mr-3 text-orange-600"></i> Gerenciar Estoque
             </h2>
 
+            <div class="mb-6">
+                <label for="product-search" class="sr-only">Pesquisar produtos</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <i data-lucide="search" class="w-5 h-5 text-gray-500"></i>
+                    </div>
+                    <input type="text" id="product-search" placeholder="Pesquisar por nome do produto..." class="block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2 pl-10">
+                </div>
+            </div>
+
             <form id="product-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8 p-4 bg-gray-800 rounded-lg border-2 border-gray-700">
                 <input type="hidden" id="product-id">
                 <div class="col-span-1 md:col-span-2 lg:col-span-1">
                     <label for="product-name" class="block text-sm font-medium text-gray-400">Nome do Produto</label>
                     <input type="text" id="product-name" name="name" class="mt-1 block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2" required>
+                </div>
+                <div>
+                    <label for="product-barcode" class="block text-sm font-medium text-gray-400">Código de Barras</label>
+                    <input type="text" id="product-barcode" name="barcode" class="mt-1 block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2">
                 </div>
                 <div>
                     <label for="product-quantity" class="block text-sm font-medium text-gray-400">Quantidade</label>
@@ -176,6 +190,9 @@ const renderEstoqueView = () => {
                                 Produto
                             </th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                                Código de Barras
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                                 Quantidade
                             </th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
@@ -201,6 +218,11 @@ const renderEstoqueView = () => {
     // Adiciona event listeners para o formulário de produto
     document.getElementById('product-form').addEventListener('submit', handleProductSubmit);
     document.getElementById('product-cancel-edit-btn').addEventListener('click', cancelEditProduct);
+    document.getElementById('product-search').addEventListener('input', (e) => {
+        const searchTerm = e.target.value;
+        const filteredProducts = currentProducts.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+        displayProducts(filteredProducts);
+    });
 
     // Carrega e exibe os produtos
     loadProducts();
@@ -243,6 +265,7 @@ const displayProducts = (products) => {
         const row = tableBody.insertRow();
         row.innerHTML = `
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-300">${product.name}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">${product.barcode || 'N/A'}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">${product.quantity}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">${formatCurrency(product.costPrice)}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">${formatCurrency(product.sellPrice)}</td>
@@ -260,6 +283,7 @@ const handleProductSubmit = async (event) => {
 
     const productId = document.getElementById('product-id').value;
     const name = document.getElementById('product-name').value;
+    const barcode = document.getElementById('product-barcode').value;
     const quantity = parseInt(document.getElementById('product-quantity').value);
     const costPrice = parseFloat(document.getElementById('product-cost-price').value);
     const sellPrice = parseFloat(document.getElementById('product-sell-price').value);
@@ -270,7 +294,7 @@ const handleProductSubmit = async (event) => {
         return;
     }
 
-    const productData = { name: name.trim(), quantity, costPrice, sellPrice };
+    const productData = { name: name.trim(), barcode: barcode.trim(), quantity, costPrice, sellPrice };
 
     try {
         if (productId) {
@@ -302,6 +326,7 @@ const editProduct = (productId) => {
     if (product) {
         document.getElementById('product-id').value = product.id;
         document.getElementById('product-name').value = product.name;
+        document.getElementById('product-barcode').value = product.barcode || '';
         document.getElementById('product-quantity').value = product.quantity;
         document.getElementById('product-cost-price').value = product.costPrice;
         document.getElementById('product-sell-price').value = product.sellPrice;
@@ -635,6 +660,15 @@ const renderVendasView = () => {
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="lg:col-span-2">
+                    <div class="mb-4">
+                        <label for="barcode-scanner" class="block text-sm font-medium text-gray-400">Ler Código de Barras</label>
+                        <div class="relative mt-1">
+                            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                <i data-lucide="scan" class="w-5 h-5 text-gray-500"></i>
+                            </div>
+                            <input type="text" id="barcode-scanner" placeholder="Posicione o cursor e escaneie o produto..." class="block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2 pl-10">
+                        </div>
+                    </div>
                     <h3 class="text-2xl font-chakra font-semibold mb-4 text-orange-400 flex items-center">
                         <i data-lucide="package" class="mr-2 text-orange-600" style="width: 20px; height: 20px;"></i> Produtos
                     </h3>
@@ -660,10 +694,14 @@ const renderVendasView = () => {
                     <div class="mt-6 space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-400 mb-2">Tipo de Pagamento</label>
-                            <div class="flex space-x-4">
+                            <div class="flex flex-wrap gap-4">
                                 <label class="flex items-center">
                                     <input type="radio" name="paymentType" value="cash" checked class="form-radio text-orange-600 bg-gray-700" onchange="window.updatePaymentType(this.value)">
                                     <span class="ml-2 text-gray-300">À Vista</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="paymentType" value="card" class="form-radio text-orange-600 bg-gray-700" onchange="window.updatePaymentType(this.value)">
+                                    <span class="ml-2 text-gray-300">Cartão</span>
                                 </label>
                                 <label class="flex items-center">
                                     <input type="radio" name="paymentType" value="credit" class="form-radio text-orange-600 bg-gray-700" onchange="window.updatePaymentType(this.value)">
@@ -678,6 +716,20 @@ const renderVendasView = () => {
                                 <option value="">Selecione um cliente</option>
                                 </select>
                         </div>
+                         <div id="card-type-container" class="hidden">
+                            <label class="block text-sm font-medium text-gray-400 mb-2">Tipo de Cartão</label>
+                            <div class="flex space-x-4">
+                                <label class="flex items-center">
+                                    <input type="radio" name="cardType" value="debit" checked class="form-radio text-orange-600 bg-gray-700">
+                                    <span class="ml-2 text-gray-300">Débito</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="cardType" value="credit" class="form-radio text-orange-600 bg-gray-700">
+                                    <span class="ml-2 text-gray-300">Crédito</span>
+                                </label>
+                            </div>
+                        </div>
+
 
                         <button id="process-sale-btn" onclick="window.processSale()" class="w-full px-4 py-3 bg-orange-600 text-white font-bold rounded-md hover:bg-orange-700 transition-colors flex items-center justify-center text-lg shadow-orange" disabled>
                             <i data-lucide="dollar-sign" class="mr-2" style="width: 20px; height: 20px;"></i> Processar Venda
@@ -695,6 +747,14 @@ const renderVendasView = () => {
 
     // Event listener para seleção de cliente
     document.getElementById('sale-customer-select').addEventListener('change', updateProcessSaleButtonState);
+    document.querySelectorAll('input[name="paymentType"]').forEach(radio => {
+        radio.addEventListener('change', window.updatePaymentType);
+    });
+
+    // Event listener para o campo de código de barras
+    document.getElementById('barcode-scanner').addEventListener('change', handleBarcodeScan);
+
+    updatePaymentType(currentPaymentType); // Inicializa a UI
 };
 
 const loadProductsForSale = () => {
@@ -771,6 +831,19 @@ const loadCustomersForSale = () => {
         document.getElementById('sale-error-text').textContent = "Erro ao carregar clientes para vendas. Tente novamente mais tarde.";
         document.getElementById('sale-error-message').classList.remove('hidden');
     });
+};
+
+const handleBarcodeScan = (event) => {
+    const barcode = event.target.value.trim();
+    if (barcode) {
+        const product = currentProducts.find(p => p.barcode === barcode);
+        if (product) {
+            window.addToCart(product.id);
+        } else {
+            showModal('Produto não encontrado', `Nenhum produto com o código de barras "${barcode}" foi encontrado.`, () => {});
+        }
+        event.target.value = ''; // Limpa o campo após o escaneamento
+    }
 };
 
 window.addToCart = (productId) => { // Tornada global
@@ -853,14 +926,29 @@ const updateCartDisplay = () => {
     lucide.createIcons();
 };
 
-window.updatePaymentType = (type) => { // Tornada global
+window.updatePaymentType = (eventOrType) => { // Tornada global
+    let type;
+    if (typeof eventOrType === 'string') {
+        type = eventOrType;
+    } else {
+        type = eventOrType.target.value;
+    }
     currentPaymentType = type;
     const customerSelectContainer = document.getElementById('customer-select-container');
+    const cardTypeContainer = document.getElementById('card-type-container');
+
     if (type === 'credit') {
         customerSelectContainer.classList.remove('hidden');
+        cardTypeContainer.classList.add('hidden');
+    } else if (type === 'card') {
+        cardTypeContainer.classList.remove('hidden');
+        customerSelectContainer.classList.add('hidden');
+        selectedCustomerForSale = '';
+        document.getElementById('sale-customer-select').value = '';
     } else {
         customerSelectContainer.classList.add('hidden');
-        selectedCustomerForSale = ''; // Limpa a seleção do cliente se mudar para à vista
+        cardTypeContainer.classList.add('hidden');
+        selectedCustomerForSale = '';
         document.getElementById('sale-customer-select').value = '';
     }
     window.updateProcessSaleButtonState();
@@ -873,7 +961,6 @@ window.updateProcessSaleButtonState = () => { // Tornada global
     let isButtonEnabled = saleCart.length > 0;
 
     if (currentPaymentType === 'credit') {
-        // FIX: Obtém o valor do select no momento da chamada
         selectedCustomerForSale = customerSelect.value;
         if (!selectedCustomerForSale) {
             isButtonEnabled = false;
@@ -913,6 +1000,7 @@ window.processSale = async () => { // Tornada global
             })),
             totalAmount: totalAmount,
             paymentType: currentPaymentType,
+            cardType: currentPaymentType === 'card' ? document.querySelector('input[name="cardType"]:checked').value : null,
             customerId: currentPaymentType === 'credit' ? selectedCustomerForSale : null,
             status: currentPaymentType === 'credit' ? 'pending' : 'paid',
         });
@@ -950,6 +1038,7 @@ window.processSale = async () => { // Tornada global
         currentPaymentType = 'cash';
         document.querySelector('input[name="paymentType"][value="cash"]').checked = true;
         document.getElementById('customer-select-container').classList.add('hidden');
+        document.getElementById('card-type-container').classList.add('hidden');
         document.getElementById('sale-customer-select').value = '';
         updateCartDisplay();
         window.updateProcessSaleButtonState();
@@ -970,6 +1059,20 @@ const renderDashboardView = async () => {
             <h2 class="text-3xl font-chakra font-bold mb-6 text-orange-400 flex items-center">
                 <i data-lucide="bar-chart-2" class="mr-3 text-orange-600"></i> Dashboard de Vendas
             </h2>
+            
+            <div class="mb-6 flex flex-wrap items-end gap-4">
+                <div>
+                    <label for="start-date" class="block text-sm font-medium text-gray-400">Data Inicial</label>
+                    <input type="date" id="start-date" class="mt-1 block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2">
+                </div>
+                <div>
+                    <label for="end-date" class="block text-sm font-medium text-gray-400">Data Final</label>
+                    <input type="date" id="end-date" class="mt-1 block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2">
+                </div>
+                <button id="filter-dashboard-btn" class="px-4 py-2 bg-orange-600 text-white font-medium rounded-md hover:bg-orange-700 transition-colors flex items-center justify-center shadow-orange">
+                    <i data-lucide="filter" class="mr-2"></i> Filtrar
+                </button>
+            </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div class="bg-gray-800 p-6 rounded-lg border border-orange-600/50 flex items-center">
@@ -1021,6 +1124,13 @@ const renderDashboardView = async () => {
     `;
     lucide.createIcons();
 
+    const filterBtn = document.getElementById('filter-dashboard-btn');
+    filterBtn.addEventListener('click', () => loadDashboardData());
+
+    loadDashboardData();
+};
+
+const loadDashboardData = async () => {
     if (!window.db || !window.userId) {
         document.getElementById('total-sales').textContent = "Erro";
         document.getElementById('total-debt').textContent = "Erro";
@@ -1029,17 +1139,8 @@ const renderDashboardView = async () => {
     }
 
     try {
-        // Carregar Total de Vendas
-        const salesQuery = query(
-            collection(window.db, `artifacts/${window.appId}/users/${window.userId}/transactions`),
-            where('type', '==', 'sale')
-        );
-        const salesSnapshot = await getDocs(salesQuery);
-        let totalSalesAmount = 0;
-        salesSnapshot.forEach(doc => {
-            totalSalesAmount += doc.data().totalAmount || 0;
-        });
-        document.getElementById('total-sales').textContent = formatCurrency(totalSalesAmount);
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
 
         // Carregar Dívida Total de Clientes
         const customersCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`);
@@ -1050,13 +1151,29 @@ const renderDashboardView = async () => {
         });
         document.getElementById('total-debt').textContent = formatCurrency(totalDebtAmount);
 
-        // Carregar Últimas Transações
+        // Carregar Total de Vendas e Últimas Transações com filtro
         const transactionsCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.userId}/transactions`);
-        const transactionsSnapshot = await getDocs(transactionsCollectionRef); // Get all for simplicity, could add orderBy and limit
+        let transactionsQuery = query(transactionsCollectionRef);
+
+        if (startDate) {
+            transactionsQuery = query(transactionsQuery, where('date', '>=', `${startDate}T00:00:00.000Z`));
+        }
+        if (endDate) {
+            transactionsQuery = query(transactionsQuery, where('date', '<=', `${endDate}T23:59:59.999Z`));
+        }
+
+        const transactionsSnapshot = await getDocs(transactionsQuery);
         let transactions = [];
+        let totalSalesAmount = 0;
         transactionsSnapshot.forEach(doc => {
-            transactions.push({ id: doc.id, ...doc.data() });
+            const data = doc.data();
+            transactions.push({ id: doc.id, ...data });
+            if (data.type === 'sale') {
+                totalSalesAmount += data.totalAmount || 0;
+            }
         });
+
+        document.getElementById('total-sales').textContent = formatCurrency(totalSalesAmount);
 
         // Ordenar por data (mais recente primeiro)
         transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -1077,7 +1194,8 @@ const renderDashboardView = async () => {
                 });
                 let description = '';
                 if (transaction.type === 'sale') {
-                    description = `Venda para ${transaction.customerId ? (currentCustomers.find(c => c.id === transaction.customerId)?.name || 'Cliente Desconhecido') : 'À Vista'}`;
+                    const cardTypeInfo = transaction.cardType ? ` (${transaction.cardType})` : '';
+                    description = `Venda para ${transaction.customerId ? (currentCustomers.find(c => c.id === transaction.customerId)?.name || 'Cliente Desconhecido') : 'À Vista'}${cardTypeInfo}`;
                 } else if (transaction.type === 'payment') {
                     description = `Pagamento de ${transaction.customerName || 'Cliente Desconhecido'}`;
                 }
