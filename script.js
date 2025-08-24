@@ -133,34 +133,34 @@ let currentProducts = []; // Armazena os produtos carregados
 const renderEstoqueView = () => {
     const mainContent = document.getElementById('main-content');
     mainContent.innerHTML = `
-        <div class="bg-white rounded-lg shadow-xl p-6 mb-8">
-            <h2 class="text-3xl font-bold mb-6 text-gray-800 flex items-center">
+        <div class="bg-gray-900 rounded-lg border border-orange-600/50 shadow-neon p-6 mb-8">
+            <h2 class="text-3xl font-chakra font-bold mb-6 text-orange-400 flex items-center">
                 <i data-lucide="package" class="mr-3 text-orange-600"></i> Gerenciar Estoque
             </h2>
 
-            <form id="product-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8 p-4 bg-gray-50 rounded-lg shadow-inner">
+            <form id="product-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8 p-4 bg-gray-800 rounded-lg border-2 border-gray-700">
                 <input type="hidden" id="product-id">
                 <div class="col-span-1 md:col-span-2 lg:col-span-1">
-                    <label for="product-name" class="block text-sm font-medium text-gray-700">Nome do Produto</label>
-                    <input type="text" id="product-name" name="name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2" required>
+                    <label for="product-name" class="block text-sm font-medium text-gray-400">Nome do Produto</label>
+                    <input type="text" id="product-name" name="name" class="mt-1 block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2" required>
                 </div>
                 <div>
-                    <label for="product-quantity" class="block text-sm font-medium text-gray-700">Quantidade</label>
-                    <input type="number" id="product-quantity" name="quantity" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2" required>
+                    <label for="product-quantity" class="block text-sm font-medium text-gray-400">Quantidade</label>
+                    <input type="number" id="product-quantity" name="quantity" class="mt-1 block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2" required>
                 </div>
                 <div>
-                    <label for="product-cost-price" class="block text-sm font-medium text-gray-700">Preço de Custo (R$)</label>
-                    <input type="number" id="product-cost-price" name="costPrice" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2" required>
+                    <label for="product-cost-price" class="block text-sm font-medium text-gray-400">Preço de Custo (R$)</label>
+                    <input type="number" id="product-cost-price" name="costPrice" step="0.01" class="mt-1 block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2" required>
                 </div>
                 <div>
-                    <label for="product-sell-price" class="block text-sm font-medium text-gray-700">Preço de Venda (R$)</label>
-                    <input type="number" id="product-sell-price" name="sellPrice" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2" required>
+                    <label for="product-sell-price" class="block text-sm font-medium text-gray-400">Preço de Venda (R$)</label>
+                    <input type="number" id="product-sell-price" name="sellPrice" step="0.01" class="mt-1 block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2" required>
                 </div>
                 <div class="col-span-full lg:col-span-1 flex items-end justify-end space-x-2">
-                    <button type="submit" id="product-submit-btn" class="w-full lg:w-auto px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center shadow-md">
+                    <button type="submit" id="product-submit-btn" class="w-full lg:w-auto px-4 py-2 bg-orange-600 text-white font-medium rounded-md hover:bg-orange-700 transition-colors flex items-center justify-center shadow-orange">
                         <i data-lucide="plus" class="mr-2"></i> Adicionar Produto
                     </button>
-                    <button type="button" id="product-cancel-edit-btn" class="hidden w-full lg:w-auto px-4 py-2 bg-gray-400 text-white font-medium rounded-md hover:bg-gray-500 transition-colors flex items-center justify-center shadow-md">
+                    <button type="button" id="product-cancel-edit-btn" class="hidden w-full lg:w-auto px-4 py-2 bg-gray-400 text-white font-medium rounded-md hover:bg-gray-500 transition-colors flex items-center justify-center">
                         <i data-lucide="x-circle" class="mr-2"></i> Cancelar
                     </button>
                 </div>
@@ -169,29 +169,28 @@ const renderEstoqueView = () => {
             <div id="product-error-message" class="text-red-500 text-center mb-4 hidden"></div>
 
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 rounded-lg overflow-hidden shadow-md">
-                    <thead class="bg-gray-100">
+                <table class="min-w-full divide-y divide-gray-700 rounded-lg overflow-hidden border border-gray-700">
+                    <thead class="bg-gray-800">
                         <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                                 Produto
                             </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                                 Quantidade
                             </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                                 Custo
                             </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                                 Venda
                             </th>
-                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
                                 Ações
                             </th>
                         </tr>
                     </thead>
-                    <tbody id="products-table-body" class="bg-white divide-y divide-gray-200">
-                        <!-- Produtos serão carregados aqui -->
-                    </tbody>
+                    <tbody id="products-table-body" class="bg-gray-900 divide-y divide-gray-700">
+                        </tbody>
                 </table>
                 <p id="no-products-message" class="px-6 py-4 text-center text-sm text-gray-500 hidden">Nenhum produto cadastrado.</p>
             </div>
@@ -243,13 +242,13 @@ const displayProducts = (products) => {
     products.forEach(product => {
         const row = tableBody.insertRow();
         row.innerHTML = `
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${product.name}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${product.quantity}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${formatCurrency(product.costPrice)}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${formatCurrency(product.sellPrice)}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-300">${product.name}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">${product.quantity}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">${formatCurrency(product.costPrice)}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">${formatCurrency(product.sellPrice)}</td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                <button onclick="editProduct('${product.id}')" class="text-blue-600 hover:text-blue-800 transition-colors">Editar</button>
-                <button onclick="confirmDeleteProduct('${product.id}', '${product.name}')" class="text-red-600 hover:text-red-800 transition-colors">Excluir</button>
+                <button onclick="editProduct('${product.id}')" class="text-blue-400 hover:text-blue-500 transition-colors">Editar</button>
+                <button onclick="confirmDeleteProduct('${product.id}', '${product.name}')" class="text-red-400 hover:text-red-500 transition-colors">Excluir</button>
             </td>
         `;
     });
@@ -346,26 +345,26 @@ let currentCustomers = []; // Armazena os clientes carregados
 const renderClientesView = () => {
     const mainContent = document.getElementById('main-content');
     mainContent.innerHTML = `
-        <div class="bg-white rounded-lg shadow-xl p-6 mb-8">
-            <h2 class="text-3xl font-bold mb-6 text-gray-800 flex items-center">
+        <div class="bg-gray-900 rounded-lg border border-orange-600/50 shadow-neon p-6 mb-8">
+            <h2 class="text-3xl font-chakra font-bold mb-6 text-orange-400 flex items-center">
                 <i data-lucide="users" class="mr-3 text-orange-600"></i> Gerenciar Clientes
             </h2>
 
-            <form id="customer-form" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 p-4 bg-gray-50 rounded-lg shadow-inner">
+            <form id="customer-form" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 p-4 bg-gray-800 rounded-lg border-2 border-gray-700">
                 <input type="hidden" id="customer-id">
                 <div class="col-span-1 md:col-span-1">
-                    <label for="customer-name" class="block text-sm font-medium text-gray-700">Nome do Cliente</label>
-                    <input type="text" id="customer-name" name="name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2" required>
+                    <label for="customer-name" class="block text-sm font-medium text-gray-400">Nome do Cliente</label>
+                    <input type="text" id="customer-name" name="name" class="mt-1 block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2" required>
                 </div>
                 <div>
-                    <label for="customer-phone" class="block text-sm font-medium text-gray-700">Telefone</label>
-                    <input type="text" id="customer-phone" name="phone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2">
+                    <label for="customer-phone" class="block text-sm font-medium text-gray-400">Telefone</label>
+                    <input type="text" id="customer-phone" name="phone" class="mt-1 block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2">
                 </div>
                 <div class="col-span-full md:col-span-1 flex items-end justify-end space-x-2">
-                    <button type="submit" id="customer-submit-btn" class="w-full md:w-auto px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center shadow-md">
+                    <button type="submit" id="customer-submit-btn" class="w-full md:w-auto px-4 py-2 bg-orange-600 text-white font-medium rounded-md hover:bg-orange-700 transition-colors flex items-center justify-center shadow-orange">
                         <i data-lucide="plus" class="mr-2"></i> Adicionar Cliente
                     </button>
-                    <button type="button" id="customer-cancel-edit-btn" class="hidden w-full md:w-auto px-4 py-2 bg-gray-400 text-white font-medium rounded-md hover:bg-gray-500 transition-colors flex items-center justify-center shadow-md">
+                    <button type="button" id="customer-cancel-edit-btn" class="hidden w-full md:w-auto px-4 py-2 bg-gray-400 text-white font-medium rounded-md hover:bg-gray-500 transition-colors flex items-center justify-center">
                         <i data-lucide="x-circle" class="mr-2"></i> Cancelar
                     </button>
                 </div>
@@ -374,26 +373,25 @@ const renderClientesView = () => {
             <div id="customer-error-message" class="text-red-500 text-center mb-4 hidden"></div>
 
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 rounded-lg overflow-hidden shadow-md">
-                    <thead class="bg-gray-100">
+                <table class="min-w-full divide-y divide-gray-700 rounded-lg overflow-hidden border border-gray-700">
+                    <thead class="bg-gray-800">
                         <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                                 Nome
                             </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                                 Telefone
                             </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                                 Dívida Total
                             </th>
-                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
                                 Ações
                             </th>
                         </tr>
                     </thead>
-                    <tbody id="customers-table-body" class="bg-white divide-y divide-gray-200">
-                        <!-- Clientes serão carregados aqui -->
-                    </tbody>
+                    <tbody id="customers-table-body" class="bg-gray-900 divide-y divide-gray-700">
+                        </tbody>
                 </table>
                 <p id="no-customers-message" class="px-6 py-4 text-center text-sm text-gray-500 hidden">Nenhum cliente cadastrado.</p>
             </div>
@@ -444,17 +442,17 @@ const displayCustomers = (customers) => {
         const row = tableBody.insertRow();
         const totalDue = customer.totalDue || 0;
         row.innerHTML = `
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${customer.name}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${customer.phone || 'N/A'}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                <span class="font-semibold ${totalDue > 0 ? 'text-orange-600' : 'text-green-600'}">
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-300">${customer.name}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">${customer.phone || 'N/A'}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                <span class="font-semibold ${totalDue > 0 ? 'text-orange-400' : 'text-green-400'}">
                     ${formatCurrency(totalDue)}
                 </span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                <button onclick="openPayModal('${customer.id}')" class="text-green-600 hover:text-green-800 transition-colors mr-2" ${totalDue <= 0 ? 'disabled' : ''}>Pagar</button>
-                <button onclick="editCustomer('${customer.id}')" class="text-blue-600 hover:text-blue-800 transition-colors mr-2">Editar</button>
-                <button onclick="confirmDeleteCustomer('${customer.id}', '${customer.name}')" class="text-red-600 hover:text-red-800 transition-colors">Excluir</button>
+                <button onclick="openPayModal('${customer.id}')" class="text-green-400 hover:text-green-500 transition-colors mr-2" ${totalDue <= 0 ? 'disabled' : ''}>Pagar</button>
+                <button onclick="editCustomer('${customer.id}')" class="text-blue-400 hover:text-blue-500 transition-colors mr-2">Editar</button>
+                <button onclick="confirmDeleteCustomer('${customer.id}', '${customer.name}')" class="text-red-400 hover:text-red-500 transition-colors">Excluir</button>
             </td>
         `;
     });
@@ -550,13 +548,13 @@ const openPayModal = (customerId) => {
 
     customerToPayId = customerId; // Armazena o ID do cliente globalmente
     const contentHtml = `
-        <p class="mb-2">Dívida atual: <span class="font-semibold text-orange-600">${formatCurrency(customer.totalDue || 0)}</span></p>
-        <label for="payment-amount" class="block text-sm font-medium text-gray-700 mb-1">Valor do Pagamento (R$)</label>
+        <p class="mb-2">Dívida atual: <span class="font-semibold text-orange-400">${formatCurrency(customer.totalDue || 0)}</span></p>
+        <label for="payment-amount" class="block text-sm font-medium text-gray-400 mb-1">Valor do Pagamento (R$)</label>
         <input
             type="number"
             id="payment-amount"
             step="0.01"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-2"
+            class="mt-1 block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-green-500 focus:ring-green-500 p-2"
             required
             max="${customer.totalDue}"
         />
@@ -594,6 +592,7 @@ const handlePay = async () => {
     }
 
     try {
+        const newTotalDue = (customer.totalDue || 0) - paymentAmount; // FIX: Variável não declarada
         const customerRef = doc(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`, customerToPayId);
         await updateDoc(customerRef, { totalDue: newTotalDue });
 
@@ -624,71 +623,63 @@ let currentPaymentType = 'cash';
 const renderVendasView = () => {
     const mainContent = document.getElementById('main-content');
     mainContent.innerHTML = `
-        <div class="bg-white rounded-lg shadow-xl p-6 mb-8">
-            <h2 class="text-3xl font-bold mb-6 text-gray-800 flex items-center">
+        <div class="bg-gray-900 rounded-lg border border-orange-600/50 shadow-neon p-6 mb-8">
+            <h2 class="text-3xl font-chakra font-bold mb-6 text-orange-400 flex items-center">
                 <i data-lucide="shopping-cart" class="mr-3 text-orange-600"></i> Realizar Venda
             </h2>
 
-            <div id="sale-error-message" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md relative mb-4 hidden" role="alert">
+            <div id="sale-error-message" class="bg-red-900/50 border border-red-500 text-red-300 px-4 py-3 rounded-md relative mb-4 hidden" role="alert">
                 <strong class="font-bold">Erro!</strong>
                 <span id="sale-error-text" class="block sm:inline ml-2"></span>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Lista de Produtos Disponíveis -->
                 <div class="lg:col-span-2">
-                    <h3 class="text-2xl font-semibold mb-4 text-gray-800 flex items-center">
-                        <i data-lucide="package" class="mr-2 text-blue-600" style="width: 20px; height: 20px;"></i> Produtos
+                    <h3 class="text-2xl font-chakra font-semibold mb-4 text-orange-400 flex items-center">
+                        <i data-lucide="package" class="mr-2 text-orange-600" style="width: 20px; height: 20px;"></i> Produtos
                     </h3>
                     <div id="available-products-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-96 overflow-y-auto pr-2 custom-scrollbar">
-                        <!-- Produtos serão carregados aqui -->
-                    </div>
+                        </div>
                     <p id="no-available-products-message" class="col-span-full text-center text-gray-500 py-8 hidden">Nenhum produto disponível em estoque.</p>
                 </div>
 
-                <!-- Carrinho de Compras e Opções de Venda -->
-                <div class="lg:col-span-1 bg-gray-50 p-6 rounded-lg shadow-md border border-gray-200">
-                    <h3 class="text-2xl font-semibold mb-4 text-gray-800 flex items-center">
-                        <i data-lucide="shopping-cart" class="mr-2 text-blue-600" style="width: 20px; height: 20px;"></i> Carrinho
+                <div class="lg:col-span-1 bg-gray-800 p-6 rounded-lg border border-gray-700">
+                    <h3 class="text-2xl font-chakra font-semibold mb-4 text-orange-400 flex items-center">
+                        <i data-lucide="shopping-cart" class="mr-2 text-orange-600" style="width: 20px; height: 20px;"></i> Carrinho
                     </h3>
                     <div id="cart-items" class="space-y-3 mb-6 max-h-60 overflow-y-auto custom-scrollbar pr-2">
-                        <!-- Itens do carrinho serão carregados aqui -->
-                    </div>
+                        </div>
                     <p id="empty-cart-message" class="text-gray-500 text-center py-4 hidden">Carrinho vazio.</p>
 
-                    <div class="border-t border-gray-200 pt-4 mt-4">
-                        <p class="text-xl font-bold text-gray-800 flex justify-between items-center">
-                            Total: <span id="cart-total" class="text-blue-700">R$ 0,00</span>
+                    <div class="border-t border-gray-700 pt-4 mt-4">
+                        <p class="text-xl font-bold text-gray-300 flex justify-between items-center">
+                            Total: <span id="cart-total" class="text-orange-400">R$ 0,00</span>
                         </p>
                     </div>
 
                     <div class="mt-6 space-y-4">
-                        <!-- Tipo de Pagamento -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Pagamento</label>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">Tipo de Pagamento</label>
                             <div class="flex space-x-4">
                                 <label class="flex items-center">
-                                    <input type="radio" name="paymentType" value="cash" checked class="form-radio text-blue-600" onchange="window.updatePaymentType(this.value)">
-                                    <span class="ml-2 text-gray-700">À Vista</span>
+                                    <input type="radio" name="paymentType" value="cash" checked class="form-radio text-orange-600 bg-gray-700" onchange="window.updatePaymentType(this.value)">
+                                    <span class="ml-2 text-gray-300">À Vista</span>
                                 </label>
                                 <label class="flex items-center">
-                                    <input type="radio" name="paymentType" value="credit" class="form-radio text-blue-600" onchange="window.updatePaymentType(this.value)">
-                                    <span class="ml-2 text-gray-700">Na Nota (a prazo)</span>
+                                    <input type="radio" name="paymentType" value="credit" class="form-radio text-orange-600 bg-gray-700" onchange="window.updatePaymentType(this.value)">
+                                    <span class="ml-2 text-gray-300">Na Nota (a prazo)</span>
                                 </label>
                             </div>
                         </div>
 
-                        <!-- Seleção de Cliente (se for a prazo) -->
                         <div id="customer-select-container" class="hidden">
-                            <label for="sale-customer-select" class="block text-sm font-medium text-gray-700 mb-2">Selecionar Cliente</label>
-                            <select id="sale-customer-select" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2" required>
+                            <label for="sale-customer-select" class="block text-sm font-medium text-gray-400 mb-2">Selecionar Cliente</label>
+                            <select id="sale-customer-select" class="block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2" required>
                                 <option value="">Selecione um cliente</option>
-                                <!-- Clientes serão carregados aqui -->
-                            </select>
+                                </select>
                         </div>
 
-                        <!-- Botão de Processar Venda -->
-                        <button id="process-sale-btn" onclick="window.processSale()" class="w-full px-4 py-3 bg-blue-600 text-white font-bold rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center text-lg shadow-lg" disabled>
+                        <button id="process-sale-btn" onclick="window.processSale()" class="w-full px-4 py-3 bg-orange-600 text-white font-bold rounded-md hover:bg-orange-700 transition-colors flex items-center justify-center text-lg shadow-orange" disabled>
                             <i data-lucide="dollar-sign" class="mr-2" style="width: 20px; height: 20px;"></i> Processar Venda
                         </button>
                     </div>
@@ -740,14 +731,14 @@ const displayAvailableProducts = (products) => {
 
     availableProducts.forEach(product => {
         const productCard = document.createElement('div');
-        productCard.className = "bg-gray-50 p-4 rounded-lg shadow-sm flex flex-col justify-between border border-gray-200";
+        productCard.className = "bg-gray-800 p-4 rounded-lg border border-gray-700 flex flex-col justify-between";
         productCard.innerHTML = `
             <div>
-                <p class="font-semibold text-lg text-gray-800">${product.name}</p>
-                <p class="text-gray-600 text-sm">Estoque: ${product.quantity}</p>
-                <p class="font-bold text-blue-600 text-xl">${formatCurrency(product.sellPrice)}</p>
+                <p class="font-semibold text-lg text-gray-300">${product.name}</p>
+                <p class="text-gray-400 text-sm">Estoque: ${product.quantity}</p>
+                <p class="font-bold text-orange-400 text-xl">${formatCurrency(product.sellPrice)}</p>
             </div>
-            <button onclick="window.addToCart('${product.id}')" class="mt-3 w-full px-3 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors flex items-center justify-center text-sm shadow-md">
+            <button onclick="window.addToCart('${product.id}')" class="mt-3 w-full px-3 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors flex items-center justify-center text-sm shadow-orange">
                 <i data-lucide="plus" class="mr-2"></i> Adicionar ao Carrinho
             </button>
         `;
@@ -839,18 +830,18 @@ const updateCartDisplay = () => {
         saleCart.forEach(item => {
             totalCart += (item.sellPrice * item.quantityInCart);
             const itemDiv = document.createElement('div');
-            itemDiv.className = "flex items-center justify-between bg-white p-3 rounded-md shadow-sm border border-gray-100";
+            itemDiv.className = "flex items-center justify-between bg-gray-900 p-3 rounded-md border border-gray-700";
             itemDiv.innerHTML = `
                 <div class="flex-grow">
-                    <p class="font-medium text-gray-800">${item.name}</p>
-                    <p class="text-sm text-gray-600">${item.quantityInCart} x ${formatCurrency(item.sellPrice)}</p>
+                    <p class="font-medium text-gray-300">${item.name}</p>
+                    <p class="text-sm text-gray-400">${item.quantityInCart} x ${formatCurrency(item.sellPrice)}</p>
                 </div>
                 <div class="flex items-center space-x-2">
-                    <button onclick="window.removeFromCart('${item.id}')" class="p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors">
+                    <button onclick="window.removeFromCart('${item.id}')" class="p-1 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors">
                         <i data-lucide="minus" style="width: 16px; height: 16px;"></i>
                     </button>
-                    <span class="font-semibold">${item.quantityInCart}</span>
-                    <button onclick="window.addToCart('${item.id}')" class="p-1 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors">
+                    <span class="font-semibold text-gray-300">${item.quantityInCart}</span>
+                    <button onclick="window.addToCart('${item.id}')" class="p-1 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors">
                         <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
                     </button>
                 </div>
@@ -882,6 +873,7 @@ window.updateProcessSaleButtonState = () => { // Tornada global
     let isButtonEnabled = saleCart.length > 0;
 
     if (currentPaymentType === 'credit') {
+        // FIX: Obtém o valor do select no momento da chamada
         selectedCustomerForSale = customerSelect.value;
         if (!selectedCustomerForSale) {
             isButtonEnabled = false;
@@ -974,55 +966,54 @@ window.processSale = async () => { // Tornada global
 const renderDashboardView = async () => {
     const mainContent = document.getElementById('main-content');
     mainContent.innerHTML = `
-        <div class="bg-white rounded-lg shadow-xl p-6 mb-8">
-            <h2 class="text-3xl font-bold mb-6 text-gray-800 flex items-center">
-                <i data-lucide="bar-chart-2" class="mr-3 text-blue-600"></i> Dashboard de Vendas
+        <div class="bg-gray-900 rounded-lg border border-orange-600/50 shadow-neon p-6 mb-8">
+            <h2 class="text-3xl font-chakra font-bold mb-6 text-orange-400 flex items-center">
+                <i data-lucide="bar-chart-2" class="mr-3 text-orange-600"></i> Dashboard de Vendas
             </h2>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div class="bg-blue-100 p-6 rounded-lg shadow-md flex items-center">
-                    <i data-lucide="dollar-sign" class="text-blue-600 mr-4" style="width: 32px; height: 32px;"></i>
+                <div class="bg-gray-800 p-6 rounded-lg border border-orange-600/50 flex items-center">
+                    <i data-lucide="dollar-sign" class="text-green-500 mr-4" style="width: 32px; height: 32px;"></i>
                     <div>
-                        <p class="text-lg text-gray-700">Total de Vendas</p>
-                        <p id="total-sales" class="text-3xl font-bold text-blue-800">Carregando...</p>
+                        <p class="text-lg text-gray-400">Total de Vendas</p>
+                        <p id="total-sales" class="text-3xl font-bold text-green-400">Carregando...</p>
                     </div>
                 </div>
-                <div class="bg-orange-100 p-6 rounded-lg shadow-md flex items-center">
-                    <i data-lucide="alert-circle" class="text-orange-600 mr-4" style="width: 32px; height: 32px;"></i>
+                <div class="bg-gray-800 p-6 rounded-lg border border-orange-600/50 flex items-center">
+                    <i data-lucide="alert-circle" class="text-red-500 mr-4" style="width: 32px; height: 32px;"></i>
                     <div>
-                        <p class="text-lg text-gray-700">Dívida Total de Clientes</p>
-                        <p id="total-debt" class="text-3xl font-bold text-orange-800">Carregando...</p>
+                        <p class="text-lg text-gray-400">Dívida Total de Clientes</p>
+                        <p id="total-debt" class="text-3xl font-bold text-red-400">Carregando...</p>
                     </div>
                 </div>
             </div>
 
-            <h3 class="text-2xl font-semibold mb-4 text-gray-800 flex items-center">
-                <i data-lucide="receipt" class="mr-2 text-blue-600" style="width: 20px; height: 20px;"></i> Últimas Transações
+            <h3 class="text-2xl font-chakra font-semibold mb-4 text-orange-400 flex items-center">
+                <i data-lucide="receipt" class="mr-2 text-orange-600" style="width: 20px; height: 20px;"></i> Últimas Transações
             </h3>
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 rounded-lg overflow-hidden shadow-md">
-                    <thead class="bg-gray-100">
+                <table class="min-w-full divide-y divide-gray-700 rounded-lg overflow-hidden border border-gray-700">
+                    <thead class="bg-gray-800">
                         <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                                 Tipo
                             </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                                 Descrição
                             </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                                 Valor
                             </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                                 Data
                             </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                                 Status
                             </th>
                         </tr>
                     </thead>
-                    <tbody id="transactions-table-body" class="bg-white divide-y divide-gray-200">
-                        <!-- Transações serão carregadas aqui -->
-                    </tbody>
+                    <tbody id="transactions-table-body" class="bg-gray-900 divide-y divide-gray-700">
+                        </tbody>
                 </table>
                 <p id="no-transactions-message" class="px-6 py-4 text-center text-sm text-gray-500 hidden">Nenhuma transação registrada.</p>
             </div>
@@ -1092,11 +1083,11 @@ const renderDashboardView = async () => {
                 }
 
                 row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 capitalize">${transaction.type === 'sale' ? 'Venda' : 'Pagamento'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${description}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm ${transaction.type === 'sale' ? 'text-red-600' : 'text-green-600'} font-semibold">${formatCurrency(transaction.totalAmount || transaction.amount || 0)}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${transactionDate}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 capitalize">${transaction.status === 'pending' ? 'Pendente' : 'Pago'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-300 capitalize">${transaction.type === 'sale' ? 'Venda' : 'Pagamento'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">${description}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm ${transaction.type === 'sale' ? 'text-orange-400' : 'text-green-400'} font-semibold">${formatCurrency(transaction.totalAmount || transaction.amount || 0)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">${transactionDate}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400 capitalize">${transaction.status === 'pending' ? 'Pendente' : 'Pago'}</td>
                 `;
             });
         }
