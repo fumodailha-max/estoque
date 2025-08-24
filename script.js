@@ -9,6 +9,12 @@ window.db = null;
 window.auth = null;
 window.userId = null;
 window.appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; // Captura o ID do aplicativo
+let currentProducts = []; // Variável global para produtos
+let currentCustomers = []; // Variável global para clientes
+let saleCart = []; // Variável global para o carrinho
+let selectedCustomerForSale = '';
+let currentPaymentType = 'cash';
+let customerToPayId = null; // Guarda o ID do cliente para pagamento
 
 // Configuração do Firebase - SUBSTITUA PELAS SUAS CREDENCIAIS
 const firebaseConfig = {
@@ -127,9 +133,146 @@ window.loadPage = (pageName) => {
     }
 };
 
-// --- Renderização da View de Estoque ---
-let currentProducts = []; // Armazena os produtos carregados
+// --- Funções globais para Produtos ---
+window.editProduct = (productId) => {
+    const product = currentProducts.find(p => p.id === productId);
+    if (product) {
+        document.getElementById('product-id').value = product.id;
+        document.getElementById('product-name').value = product.name;
+        document.getElementById('product-barcode').value = product.barcode || '';
+        document.getElementById('product-quantity').value = product.quantity;
+        document.getElementById('product-cost-price').value = product.costPrice;
+        document.getElementById('product-sell-price').value = product.sellPrice;
+        document.getElementById('product-submit-btn').innerHTML = `<i data-lucide="check-circle" class="mr-2"></i> Atualizar Produto`;
+        document.getElementById('product-cancel-edit-btn').classList.remove('hidden');
+        lucide.createIcons();
+    }
+};
 
+window.confirmDeleteProduct = (productId, productName) => {
+    showModal('Confirmar Exclusão',
+              `Tem certeza que deseja excluir o produto "${productName}"? Esta ação não pode ser desfeita.`,
+              () => deleteProduct(productId),
+              () => {}, // Não faz nada ao cancelar
+              'Excluir', 'Cancelar');
+};
+
+const deleteProduct = async (productId) => {
+    try {
+        await deleteDoc(doc(window.db, `artifacts/${window.appId}/users/${window.userId}/products`, productId));
+        console.log("Produto excluído com sucesso!");
+        showModal('Sucesso!', 'Produto excluído com sucesso.', () => {});
+    } catch (err) {
+        console.error("Erro ao excluir produto:", err);
+        showModal('Erro!', 'Erro ao excluir produto. Tente novamente.', null, () => {});
+    }
+};
+
+// --- Funções globais para Clientes ---
+window.editCustomer = (customerId) => {
+    const customer = currentCustomers.find(c => c.id === customerId);
+    if (customer) {
+        document.getElementById('customer-id').value = customer.id;
+        document.getElementById('customer-name').value = customer.name;
+        document.getElementById('customer-phone').value = customer.phone;
+        document.getElementById('customer-submit-btn').innerHTML = `<i data-lucide="check-circle" class="mr-2"></i> Atualizar Cliente`;
+        document.getElementById('customer-cancel-edit-btn').classList.remove('hidden');
+        lucide.createIcons();
+    }
+};
+
+window.confirmDeleteCustomer = (customerId, customerName) => {
+    showModal('Confirmar Exclusão',
+              `Tem certeza que deseja excluir o cliente "${customerName}"? Esta ação não pode ser desfeita.`,
+              () => deleteCustomer(customerId),
+              () => {},
+              'Excluir', 'Cancelar');
+};
+
+const deleteCustomer = async (customerId) => {
+    try {
+        await deleteDoc(doc(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`, customerId));
+        console.log("Cliente excluído com sucesso!");
+        showModal('Sucesso!', 'Cliente excluído com sucesso.', () => {});
+    } catch (err) {
+        console.error("Erro ao excluir cliente:", err);
+        showModal('Erro!', 'Erro ao excluir cliente. Tente novamente.', null, () => {});
+    }
+};
+
+window.openPayModal = (customerId) => {
+    const customer = currentCustomers.find(c => c.id === customerId);
+    if (!customer) return;
+
+    customerToPayId = customerId; // Armazena o ID do cliente globalmente
+    const contentHtml = `
+        <p class="mb-2">Dívida atual: <span class="font-semibold text-orange-400">${formatCurrency(customer.totalDue || 0)}</span></p>
+        <label for="payment-amount" class="block text-sm font-medium text-gray-400 mb-1">Valor do Pagamento (R$)</label>
+        <input
+            type="number"
+            id="payment-amount"
+            step="0.01"
+            class="mt-1 block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-green-500 focus:ring-green-500 p-2"
+            required
+            max="${customer.totalDue}"
+        />
+        <p id="payment-error-message" class="text-red-500 text-xs mt-2 hidden"></p>
+    `;
+
+    showModal(
+        `Registrar Pagamento para ${customer.name}`,
+        '', // Mensagem principal vazia, pois o conteúdo é dinâmico
+        handlePay,
+        () => { customerToPayId = null; },
+        'Registrar Pagamento',
+        'Cancelar',
+        contentHtml
+    );
+};
+
+const handlePay = async () => {
+    const paymentAmountInput = document.getElementById('payment-amount');
+    const paymentAmount = parseFloat(paymentAmountInput.value);
+    const paymentErrorMessage = document.getElementById('payment-error-message');
+    paymentErrorMessage.classList.add('hidden');
+
+    const customer = currentCustomers.find(c => c.id === customerToPayId);
+
+    if (isNaN(paymentAmount) || paymentAmount <= 0) {
+        paymentErrorMessage.textContent = "O valor do pagamento deve ser um número positivo.";
+        paymentErrorMessage.classList.remove('hidden');
+        return;
+    }
+    if (paymentAmount > customer.totalDue) {
+        paymentErrorMessage.textContent = "O valor do pagamento não pode ser maior que a dívida total.";
+        paymentErrorMessage.classList.remove('hidden');
+        return;
+    }
+
+    try {
+        const newTotalDue = (customer.totalDue || 0) - paymentAmount; // FIX: Variável não declarada
+        const customerRef = doc(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`, customerToPayId);
+        await updateDoc(customerRef, { totalDue: newTotalDue });
+
+        // Opcional: registrar a transação de pagamento
+        await addDoc(collection(window.db, `artifacts/${window.appId}/users/${window.userId}/transactions`), {
+            type: 'payment',
+            customerId: customerToPayId,
+            customerName: customer.name,
+            amount: paymentAmount,
+            date: new Date().toISOString(),
+        });
+
+        console.log("Pagamento registrado com sucesso!");
+        showModal('Sucesso!', 'Pagamento registrado com sucesso!', () => {});
+        customerToPayId = null;
+    } catch (err) {
+        console.error("Erro ao registrar pagamento:", err);
+        showModal('Erro!', 'Erro ao registrar pagamento. Tente novamente.', null, () => {});
+    }
+};
+
+// --- Renderização da View de Estoque ---
 const renderEstoqueView = () => {
     const mainContent = document.getElementById('main-content');
     mainContent.innerHTML = `
@@ -321,21 +464,6 @@ const handleProductSubmit = async (event) => {
     }
 };
 
-const editProduct = (productId) => {
-    const product = currentProducts.find(p => p.id === productId);
-    if (product) {
-        document.getElementById('product-id').value = product.id;
-        document.getElementById('product-name').value = product.name;
-        document.getElementById('product-barcode').value = product.barcode || '';
-        document.getElementById('product-quantity').value = product.quantity;
-        document.getElementById('product-cost-price').value = product.costPrice;
-        document.getElementById('product-sell-price').value = product.sellPrice;
-        document.getElementById('product-submit-btn').innerHTML = `<i data-lucide="check-circle" class="mr-2"></i> Atualizar Produto`;
-        document.getElementById('product-cancel-edit-btn').classList.remove('hidden');
-        lucide.createIcons();
-    }
-};
-
 const cancelEditProduct = () => {
     document.getElementById('product-form').reset();
     document.getElementById('product-id').value = '';
@@ -344,29 +472,8 @@ const cancelEditProduct = () => {
     lucide.createIcons();
 };
 
-const confirmDeleteProduct = (productId, productName) => {
-    showModal('Confirmar Exclusão',
-              `Tem certeza que deseja excluir o produto "${productName}"? Esta ação não pode ser desfeita.`,
-              () => deleteProduct(productId),
-              () => {}, // Não faz nada ao cancelar
-              'Excluir', 'Cancelar');
-};
-
-const deleteProduct = async (productId) => {
-    try {
-        await deleteDoc(doc(window.db, `artifacts/${window.appId}/users/${window.userId}/products`, productId));
-        console.log("Produto excluído com sucesso!");
-        showModal('Sucesso!', 'Produto excluído com sucesso.', () => {});
-    } catch (err) {
-        console.error("Erro ao excluir produto:", err);
-        showModal('Erro!', 'Erro ao excluir produto. Tente novamente.', null, () => {});
-    }
-};
-
 
 // --- Renderização da View de Clientes ---
-let currentCustomers = []; // Armazena os clientes carregados
-
 const renderClientesView = () => {
     const mainContent = document.getElementById('main-content');
     mainContent.innerHTML = `
@@ -526,18 +633,6 @@ const handleCustomerSubmit = async (event) => {
     }
 };
 
-const editCustomer = (customerId) => {
-    const customer = currentCustomers.find(c => c.id === customerId);
-    if (customer) {
-        document.getElementById('customer-id').value = customer.id;
-        document.getElementById('customer-name').value = customer.name;
-        document.getElementById('customer-phone').value = customer.phone;
-        document.getElementById('customer-submit-btn').innerHTML = `<i data-lucide="check-circle" class="mr-2"></i> Atualizar Cliente`;
-        document.getElementById('customer-cancel-edit-btn').classList.remove('hidden');
-        lucide.createIcons();
-    }
-};
-
 const cancelEditCustomer = () => {
     document.getElementById('customer-form').reset();
     document.getElementById('customer-id').value = '';
@@ -546,105 +641,8 @@ const cancelEditCustomer = () => {
     lucide.createIcons();
 };
 
-const confirmDeleteCustomer = (customerId, customerName) => {
-    showModal('Confirmar Exclusão',
-              `Tem certeza que deseja excluir o cliente "${customerName}"? Esta ação não pode ser desfeita.`,
-              () => deleteCustomer(customerId),
-              () => {},
-              'Excluir', 'Cancelar');
-};
-
-const deleteCustomer = async (customerId) => {
-    try {
-        await deleteDoc(doc(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`, customerId));
-        console.log("Cliente excluído com sucesso!");
-        showModal('Sucesso!', 'Cliente excluído com sucesso.', () => {});
-    } catch (err) {
-        console.error("Erro ao excluir cliente:", err);
-        showModal('Erro!', 'Erro ao excluir cliente. Tente novamente.', null, () => {});
-    }
-};
-
-let customerToPayId = null; // Guarda o ID do cliente para pagamento
-
-const openPayModal = (customerId) => {
-    const customer = currentCustomers.find(c => c.id === customerId);
-    if (!customer) return;
-
-    customerToPayId = customerId; // Armazena o ID do cliente globalmente
-    const contentHtml = `
-        <p class="mb-2">Dívida atual: <span class="font-semibold text-orange-400">${formatCurrency(customer.totalDue || 0)}</span></p>
-        <label for="payment-amount" class="block text-sm font-medium text-gray-400 mb-1">Valor do Pagamento (R$)</label>
-        <input
-            type="number"
-            id="payment-amount"
-            step="0.01"
-            class="mt-1 block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-green-500 focus:ring-green-500 p-2"
-            required
-            max="${customer.totalDue}"
-        />
-        <p id="payment-error-message" class="text-red-500 text-xs mt-2 hidden"></p>
-    `;
-
-    showModal(
-        `Registrar Pagamento para ${customer.name}`,
-        '', // Mensagem principal vazia, pois o conteúdo é dinâmico
-        handlePay,
-        () => { customerToPayId = null; },
-        'Registrar Pagamento',
-        'Cancelar',
-        contentHtml
-    );
-};
-
-const handlePay = async () => {
-    const paymentAmountInput = document.getElementById('payment-amount');
-    const paymentAmount = parseFloat(paymentAmountInput.value);
-    const paymentErrorMessage = document.getElementById('payment-error-message');
-    paymentErrorMessage.classList.add('hidden');
-
-    const customer = currentCustomers.find(c => c.id === customerToPayId);
-
-    if (isNaN(paymentAmount) || paymentAmount <= 0) {
-        paymentErrorMessage.textContent = "O valor do pagamento deve ser um número positivo.";
-        paymentErrorMessage.classList.remove('hidden');
-        return;
-    }
-    if (paymentAmount > customer.totalDue) {
-        paymentErrorMessage.textContent = "O valor do pagamento não pode ser maior que a dívida total.";
-        paymentErrorMessage.classList.remove('hidden');
-        return;
-    }
-
-    try {
-        const newTotalDue = (customer.totalDue || 0) - paymentAmount; // FIX: Variável não declarada
-        const customerRef = doc(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`, customerToPayId);
-        await updateDoc(customerRef, { totalDue: newTotalDue });
-
-        // Opcional: registrar a transação de pagamento
-        await addDoc(collection(window.db, `artifacts/${window.appId}/users/${window.userId}/transactions`), {
-            type: 'payment',
-            customerId: customerToPayId,
-            customerName: customer.name,
-            amount: paymentAmount,
-            date: new Date().toISOString(),
-        });
-
-        console.log("Pagamento registrado com sucesso!");
-        showModal('Sucesso!', 'Pagamento registrado com sucesso!', () => {});
-        customerToPayId = null;
-    } catch (err) {
-        console.error("Erro ao registrar pagamento:", err);
-        showModal('Erro!', 'Erro ao registrar pagamento. Tente novamente.', null, () => {});
-    }
-};
-
 
 // --- Renderização da View de Vendas ---
-let saleCart = [];
-let selectedCustomerForSale = '';
-let currentPaymentType = 'cash';
-
 const renderVendasView = () => {
     const mainContent = document.getElementById('main-content');
     mainContent.innerHTML = `
@@ -755,82 +753,6 @@ const renderVendasView = () => {
     document.getElementById('barcode-scanner').addEventListener('change', handleBarcodeScan);
 
     updatePaymentType(currentPaymentType); // Inicializa a UI
-};
-
-const loadProductsForSale = () => {
-    if (!window.db || !window.userId) {
-        document.getElementById('available-products-list').innerHTML = `<div class="col-span-full text-center text-red-500 py-8">Firebase não inicializado.</div>`;
-        return;
-    }
-
-    const productsCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.userId}/products`);
-    onSnapshot(productsCollectionRef, (snapshot) => {
-        const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        currentProducts = productsData; // Atualiza a lista global de produtos
-        displayAvailableProducts(productsData);
-    }, (err) => {
-        console.error("Erro ao carregar produtos para vendas:", err);
-        document.getElementById('sale-error-text').textContent = "Erro ao carregar produtos. Tente novamente mais tarde.";
-        document.getElementById('sale-error-message').classList.remove('hidden');
-    });
-};
-
-const displayAvailableProducts = (products) => {
-    const list = document.getElementById('available-products-list');
-    list.innerHTML = '';
-    const noProductsMessage = document.getElementById('no-available-products-message');
-
-    const availableProducts = products.filter(p => p.quantity > 0);
-
-    if (availableProducts.length === 0) {
-        noProductsMessage.classList.remove('hidden');
-        return;
-    } else {
-        noProductsMessage.classList.add('hidden');
-    }
-
-    availableProducts.forEach(product => {
-        const productCard = document.createElement('div');
-        productCard.className = "bg-gray-800 p-4 rounded-lg border border-gray-700 flex flex-col justify-between";
-        productCard.innerHTML = `
-            <div>
-                <p class="font-semibold text-lg text-gray-300">${product.name}</p>
-                <p class="text-gray-400 text-sm">Estoque: ${product.quantity}</p>
-                <p class="font-bold text-orange-400 text-xl">${formatCurrency(product.sellPrice)}</p>
-            </div>
-            <button onclick="window.addToCart('${product.id}')" class="mt-3 w-full px-3 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors flex items-center justify-center text-sm shadow-orange">
-                <i data-lucide="plus" class="mr-2"></i> Adicionar ao Carrinho
-            </button>
-        `;
-        list.appendChild(productCard);
-    });
-    lucide.createIcons();
-};
-
-const loadCustomersForSale = () => {
-    if (!window.db || !window.userId) {
-        document.getElementById('sale-customer-select').innerHTML = `<option value="">Erro ao carregar clientes</option>`;
-        return;
-    }
-
-    const customersCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`);
-    onSnapshot(customersCollectionRef, (snapshot) => {
-        const customersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        currentCustomers = customersData; // Atualiza a lista global de clientes
-        const select = document.getElementById('sale-customer-select');
-        select.innerHTML = '<option value="">Selecione um cliente</option>'; // Limpa e adiciona a opção padrão
-        customersData.forEach(customer => {
-            const option = document.createElement('option');
-            option.value = customer.id;
-            option.textContent = customer.name;
-            select.appendChild(option);
-        });
-        window.updateProcessSaleButtonState();
-    }, (err) => {
-        console.error("Erro ao carregar clientes para vendas:", err);
-        document.getElementById('sale-error-text').textContent = "Erro ao carregar clientes para vendas. Tente novamente mais tarde.";
-        document.getElementById('sale-error-message').classList.remove('hidden');
-    });
 };
 
 const handleBarcodeScan = (event) => {
@@ -1216,4 +1138,80 @@ const loadDashboardData = async () => {
         document.getElementById('total-debt').textContent = "Erro";
         document.getElementById('transactions-table-body').innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-sm text-red-500">Erro ao carregar dados.</td></tr>`;
     }
+};
+
+const loadProductsForSale = () => {
+    if (!window.db || !window.userId) {
+        document.getElementById('available-products-list').innerHTML = `<div class="col-span-full text-center text-red-500 py-8">Firebase não inicializado.</div>`;
+        return;
+    }
+
+    const productsCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.userId}/products`);
+    onSnapshot(productsCollectionRef, (snapshot) => {
+        const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        currentProducts = productsData; // Atualiza a lista global de produtos
+        displayAvailableProducts(productsData);
+    }, (err) => {
+        console.error("Erro ao carregar produtos para vendas:", err);
+        document.getElementById('sale-error-text').textContent = "Erro ao carregar produtos. Tente novamente mais tarde.";
+        document.getElementById('sale-error-message').classList.remove('hidden');
+    });
+};
+
+const displayAvailableProducts = (products) => {
+    const list = document.getElementById('available-products-list');
+    list.innerHTML = '';
+    const noProductsMessage = document.getElementById('no-available-products-message');
+
+    const availableProducts = products.filter(p => p.quantity > 0);
+
+    if (availableProducts.length === 0) {
+        noProductsMessage.classList.remove('hidden');
+        return;
+    } else {
+        noProductsMessage.classList.add('hidden');
+    }
+
+    availableProducts.forEach(product => {
+        const productCard = document.createElement('div');
+        productCard.className = "bg-gray-800 p-4 rounded-lg border border-gray-700 flex flex-col justify-between";
+        productCard.innerHTML = `
+            <div>
+                <p class="font-semibold text-lg text-gray-300">${product.name}</p>
+                <p class="text-gray-400 text-sm">Estoque: ${product.quantity}</p>
+                <p class="font-bold text-orange-400 text-xl">${formatCurrency(product.sellPrice)}</p>
+            </div>
+            <button onclick="window.addToCart('${product.id}')" class="mt-3 w-full px-3 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors flex items-center justify-center text-sm shadow-orange">
+                <i data-lucide="plus" class="mr-2"></i> Adicionar ao Carrinho
+            </button>
+        `;
+        list.appendChild(productCard);
+    });
+    lucide.createIcons();
+};
+
+const loadCustomersForSale = () => {
+    if (!window.db || !window.userId) {
+        document.getElementById('sale-customer-select').innerHTML = `<option value="">Erro ao carregar clientes</option>`;
+        return;
+    }
+
+    const customersCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`);
+    onSnapshot(customersCollectionRef, (snapshot) => {
+        const customersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        currentCustomers = customersData; // Atualiza a lista global de clientes
+        const select = document.getElementById('sale-customer-select');
+        select.innerHTML = '<option value="">Selecione um cliente</option>'; // Limpa e adiciona a opção padrão
+        customersData.forEach(customer => {
+            const option = document.createElement('option');
+            option.value = customer.id;
+            option.textContent = customer.name;
+            select.appendChild(option);
+        });
+        window.updateProcessSaleButtonState();
+    }, (err) => {
+        console.error("Erro ao carregar clientes para vendas:", err);
+        document.getElementById('sale-error-text').textContent = "Erro ao carregar clientes para vendas. Tente novamente mais tarde.";
+        document.getElementById('sale-error-message').classList.remove('hidden');
+    });
 };
