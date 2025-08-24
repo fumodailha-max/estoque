@@ -4,7 +4,136 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestão de Estoque Tabacaria</title>
-    <!-- Tailwind CSS CDN -->
+    <!-- Tailwind CSS CDN --><!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fumo da Ilha - Gestão de Estoque</title>
+    <!-- Link para o Tailwind CSS via CDN - ideal para desenvolvimento rápido -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <!-- Ícones Lucide React para o projeto HTML -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <!-- Firebase SDKs via CDN -->
+    <script type="module">
+        // Importa os módulos do Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Variáveis globais para Firebase (serão inicializadas em script.js)
+        window.firebaseApp = null;
+        window.db = null;
+        window.auth = null;
+        window.userId = null;
+        window.appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; // Captura o ID do aplicativo
+
+        // Configuração do Firebase - SUBSTITUA PELAS SUAS CREDENCIAIS
+        const firebaseConfig = {
+            apiKey: "",
+            authDomain: "",
+            projectId: "",
+            storageBucket: "",
+            messagingSenderId: "",
+            appId: ""
+        };
+
+        // Inicializa o Firebase e a autenticação
+        const initFirebase = async () => {
+            try {
+                const config = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : firebaseConfig;
+                window.firebaseApp = initializeApp(config);
+                window.db = getFirestore(window.firebaseApp);
+                window.auth = getAuth(window.firebaseApp);
+
+                // Escuta as mudanças de estado de autenticação
+                onAuthStateChanged(window.auth, async (user) => {
+                    if (user) {
+                        window.userId = user.uid;
+                        console.log("Usuário autenticado:", window.userId);
+                        // Remover a atualização do footer-user-id, pois o footer foi removido
+                    } else {
+                        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(window.auth, initialAuthToken);
+                        } else {
+                            await signInAnonymously(window.auth);
+                        }
+                    }
+                    // Quando o Firebase estiver pronto, carrega a página de estoque
+                    window.loadPage('estoque');
+                });
+
+            } catch (error) {
+                console.error("Erro ao inicializar Firebase:", error);
+                document.getElementById('main-content').innerHTML = `<div class="text-center text-red-500 text-lg mt-8">Erro ao carregar o Firebase. Verifique suas credenciais.</div>`;
+            }
+        };
+
+        // Expondo a função initFirebase globalmente para ser chamada quando o DOM estiver pronto
+        window.initFirebase = initFirebase;
+
+        // Expondo módulos do Firebase para script.js
+        window.firebaseModules = { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, onSnapshot, query, where };
+    </script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 text-gray-900 font-sans antialiased flex flex-col">
+    <!-- Navbar -->
+    <nav class="bg-orange-600 text-white p-4 shadow-lg sticky top-0 z-10">
+        <div class="container mx-auto flex flex-wrap justify-between items-center">
+            <div class="flex items-center">
+                <!-- Local para Logo (substitua o src pelo URL da sua logo) -->
+                <img src="https://placehold.co/40x40/FF7F00/FFFFFF?text=Logo" alt="Logo Fumo da Ilha" class="h-10 w-10 rounded-full mr-3">
+                <h1 class="text-2xl font-bold flex items-center">
+                    Fumo da Ilha
+                </h1>
+            </div>
+            <div class="flex space-x-4 mt-2 md:mt-0">
+                <button onclick="loadPage('estoque')" id="nav-estoque" class="px-4 py-2 rounded-lg flex items-center transition-colors hover:bg-orange-700">
+                    <i data-lucide="package" class="mr-2" style="width: 18px; height: 18px;"></i> Estoque
+                </button>
+                <button onclick="loadPage('clientes')" id="nav-clientes" class="px-4 py-2 rounded-lg flex items-center transition-colors hover:bg-orange-700">
+                    <i data-lucide="users" class="mr-2" style="width: 18px; height: 18px;"></i> Clientes
+                </button>
+                <button onclick="loadPage('vendas')" id="nav-vendas" class="px-4 py-2 rounded-lg flex items-center transition-colors hover:bg-orange-700">
+                    <i data-lucide="shopping-cart" class="mr-2" style="width: 18px; height: 18px;"></i> Vendas
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Conteúdo principal -->
+    <main id="main-content" class="container mx-auto p-6 flex-grow"></main>
+
+    <!-- Modal para mensagens e confirmações -->
+    <div id="custom-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
+            <h3 id="modal-title" class="text-xl font-bold mb-4 text-gray-800 flex items-center">
+                <i data-lucide="info" class="mr-2 text-blue-500" style="width: 24px; height: 24px;"></i>
+                Título do Modal
+            </h3>
+            <div id="modal-message" class="mb-6 text-gray-700">Mensagem do modal.</div>
+            <div id="modal-content-area"></div> <!-- Para conteúdo dinâmico, como inputs de pagamento -->
+            <div class="flex justify-end space-x-3">
+                <button id="modal-cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors">Cancelar</button>
+                <button id="modal-confirm-btn" class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script principal da aplicação -->
+    <script type="module" src="script.js"></script>
+    <!-- Inicializa os ícones Lucide após o carregamento da página -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            // A atualização do ID do aplicativo no footer foi removida junto com o footer
+        });
+    </script>
+</body>
+</html>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons CDN -->
     <script src="https://unpkg.com/lucide@latest"></script>
