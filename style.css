@@ -1,18 +1,28 @@
-/* style.css */
-
-/* Custom scrollbar styles for WebKit browsers */
+/* Custom Scrollbar Styles for WebKit browsers */
 .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
     height: 8px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: #cbd5e0; /* gray-300 */
+    background-color: #f97316; /* Cor laranja (orange-500) do Tailwind */
     border-radius: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: #a0aec0; /* gray-400 */
+    background-color: #ea580c; /* Laranja um pouco mais escuro */
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-    background-color: #f7fafc; /* gray-50 */
+    background-color: #f3f4f6; /* gray-100 */
     border-radius: 4px;
+}
+
+/* Base styles for lucide icons */
+i[data-lucide] {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* Estilos para o botão de navegação ativo */
+.nav-active {
+    background-color: #2563eb; /* Azul (blue-600) do Tailwind */
+    color: white;
 }
