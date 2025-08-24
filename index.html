@@ -24,14 +24,15 @@
         window.appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; // Captura o ID do aplicativo
 
         // Configuração do Firebase - SUBSTITUA PELAS SUAS CREDENCIAIS
-const firebaseConfig = {
-  apiKey: "AIzaSyBszbg1MsMFxK5Si_VuXzdQZTpKfAmiAME",
-  authDomain: "fdiestoque.firebaseapp.com",
-  projectId: "fdiestoque",
-  storageBucket: "fdiestoque.firebasestorage.app",
-  messagingSenderId: "125497955543",
-  appId: "1:125497955543:web:c820dcb7e2a99ffdcc0c92"
-};
+        const firebaseConfig = {
+          apiKey: "AIzaSyBszbg1MsMFxK5Si_VuXzdQZTpKfAmiAME",
+          authDomain: "fdiestoque.firebaseapp.com",
+          projectId: "fdiestoque",
+          storageBucket: "fdiestoque.firebasestorage.app",
+          messagingSenderId: "125497955543",
+          appId: "1:125497955543:web:c820dcb7e2a99ffdcc0c92"
+        };
+
         // Inicializa o Firebase e a autenticação
         const initFirebase = async () => {
             try {
@@ -45,7 +46,6 @@ const firebaseConfig = {
                     if (user) {
                         window.userId = user.uid;
                         console.log("Usuário autenticado:", window.userId);
-                        // Remover a atualização do footer-user-id, pois o footer foi removido
                     } else {
                         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
                         if (initialAuthToken) {
@@ -92,6 +92,9 @@ const firebaseConfig = {
                 <button onclick="loadPage('vendas')" id="nav-vendas" class="px-4 py-2 rounded-lg flex items-center transition-colors hover:bg-orange-700">
                     <i data-lucide="shopping-cart" class="mr-2" style="width: 18px; height: 18px;"></i> Vendas
                 </button>
+                <button onclick="loadPage('dashboard')" id="nav-dashboard" class="px-4 py-2 rounded-lg flex items-center transition-colors hover:bg-orange-700">
+                    <i data-lucide="bar-chart-2" class="mr-2" style="width: 18px; height: 18px;"></i> Dashboard
+                </button>
             </div>
         </div>
     </nav>
@@ -121,7 +124,6 @@ const firebaseConfig = {
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
-            // A atualização do ID do aplicativo no footer foi removida junto com o footer
         });
     </script>
 </body>
