@@ -66,12 +66,17 @@ window.loadPage = (pageName) => {
         case 'vendas':
             renderVendasView();
             break;
+        case 'dashboard':
+            renderDashboardView();
+            break;
         default:
             mainContent.innerHTML = `<div class="text-center text-lg mt-8 text-gray-600">Página não encontrada.</div>`;
     }
 };
 
 // --- Renderização da View de Estoque ---
+let currentProducts = []; // Armazena os produtos carregados
+
 const renderEstoqueView = () => {
     const mainContent = document.getElementById('main-content');
     mainContent.innerHTML = `
@@ -148,8 +153,6 @@ const renderEstoqueView = () => {
     // Carrega e exibe os produtos
     loadProducts();
 };
-
-let currentProducts = []; // Armazena os produtos carregados
 
 const loadProducts = () => {
     if (!window.db || !window.userId) {
@@ -285,6 +288,8 @@ const deleteProduct = async (productId) => {
 
 
 // --- Renderização da View de Clientes ---
+let currentCustomers = []; // Armazena os clientes carregados
+
 const renderClientesView = () => {
     const mainContent = document.getElementById('main-content');
     mainContent.innerHTML = `
@@ -348,8 +353,6 @@ const renderClientesView = () => {
 
     loadCustomers();
 };
-
-let currentCustomers = []; // Armazena os clientes carregados
 
 const loadCustomers = () => {
     if (!window.db || !window.userId) {
@@ -562,6 +565,10 @@ const handlePay = async () => {
 
 
 // --- Renderização da View de Vendas ---
+let saleCart = [];
+let selectedCustomerForSale = '';
+let currentPaymentType = 'cash';
+
 const renderVendasView = () => {
     const mainContent = document.getElementById('main-content');
     mainContent.innerHTML = `
@@ -609,11 +616,11 @@ const renderVendasView = () => {
                             <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Pagamento</label>
                             <div class="flex space-x-4">
                                 <label class="flex items-center">
-                                    <input type="radio" name="paymentType" value="cash" checked class="form-radio text-blue-600" onchange="updatePaymentType(this.value)">
+                                    <input type="radio" name="paymentType" value="cash" checked class="form-radio text-blue-600" onchange="window.updatePaymentType(this.value)">
                                     <span class="ml-2 text-gray-700">À Vista</span>
                                 </label>
                                 <label class="flex items-center">
-                                    <input type="radio" name="paymentType" value="credit" class="form-radio text-blue-600" onchange="updatePaymentType(this.value)">
+                                    <input type="radio" name="paymentType" value="credit" class="form-radio text-blue-600" onchange="window.updatePaymentType(this.value)">
                                     <span class="ml-2 text-gray-700">Na Nota (a prazo)</span>
                                 </label>
                             </div>
@@ -629,7 +636,7 @@ const renderVendasView = () => {
                         </div>
 
                         <!-- Botão de Processar Venda -->
-                        <button id="process-sale-btn" onclick="processSale()" class="w-full px-4 py-3 bg-blue-600 text-white font-bold rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center text-lg shadow-lg" disabled>
+                        <button id="process-sale-btn" onclick="window.processSale()" class="w-full px-4 py-3 bg-blue-600 text-white font-bold rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center text-lg shadow-lg" disabled>
                             <i data-lucide="dollar-sign" class="mr-2" style="width: 20px; height: 20px;"></i> Processar Venda
                         </button>
                     </div>
@@ -646,10 +653,6 @@ const renderVendasView = () => {
     // Event listener para seleção de cliente
     document.getElementById('sale-customer-select').addEventListener('change', updateProcessSaleButtonState);
 };
-
-let saleCart = [];
-let selectedCustomerForSale = '';
-let currentPaymentType = 'cash';
 
 const loadProductsForSale = () => {
     if (!window.db || !window.userId) {
@@ -692,7 +695,7 @@ const displayAvailableProducts = (products) => {
                 <p class="text-gray-600 text-sm">Estoque: ${product.quantity}</p>
                 <p class="font-bold text-blue-600 text-xl">${formatCurrency(product.sellPrice)}</p>
             </div>
-            <button onclick="addToCart('${product.id}')" class="mt-3 w-full px-3 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors flex items-center justify-center text-sm shadow-md">
+            <button onclick="window.addToCart('${product.id}')" class="mt-3 w-full px-3 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors flex items-center justify-center text-sm shadow-md">
                 <i data-lucide="plus" class="mr-2"></i> Adicionar ao Carrinho
             </button>
         `;
@@ -719,7 +722,7 @@ const loadCustomersForSale = () => {
             option.textContent = customer.name;
             select.appendChild(option);
         });
-        updateProcessSaleButtonState();
+        window.updateProcessSaleButtonState();
     }, (err) => {
         console.error("Erro ao carregar clientes para vendas:", err);
         document.getElementById('sale-error-text').textContent = "Erro ao carregar clientes para vendas. Tente novamente mais tarde.";
@@ -727,7 +730,7 @@ const loadCustomersForSale = () => {
     });
 };
 
-const addToCart = (productId) => {
+window.addToCart = (productId) => { // Tornada global
     document.getElementById('sale-error-message').classList.add('hidden');
     const product = currentProducts.find(p => p.id === productId);
     if (!product) return;
@@ -753,10 +756,10 @@ const addToCart = (productId) => {
         saleCart.push({ ...product, quantityInCart: 1 });
     }
     updateCartDisplay();
-    updateProcessSaleButtonState();
+    window.updateProcessSaleButtonState();
 };
 
-const removeFromCart = (productId) => {
+window.removeFromCart = (productId) => { // Tornada global
     document.getElementById('sale-error-message').classList.add('hidden');
     const existingItemIndex = saleCart.findIndex(item => item.id === productId);
 
@@ -768,7 +771,7 @@ const removeFromCart = (productId) => {
         }
     }
     updateCartDisplay();
-    updateProcessSaleButtonState();
+    window.updateProcessSaleButtonState();
 };
 
 const updateCartDisplay = () => {
@@ -791,11 +794,11 @@ const updateCartDisplay = () => {
                     <p class="text-sm text-gray-600">${item.quantityInCart} x ${formatCurrency(item.sellPrice)}</p>
                 </div>
                 <div class="flex items-center space-x-2">
-                    <button onclick="removeFromCart('${item.id}')" class="p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors">
+                    <button onclick="window.removeFromCart('${item.id}')" class="p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors">
                         <i data-lucide="minus" style="width: 16px; height: 16px;"></i>
                     </button>
                     <span class="font-semibold">${item.quantityInCart}</span>
-                    <button onclick="addToCart('${item.id}')" class="p-1 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors">
+                    <button onclick="window.addToCart('${item.id}')" class="p-1 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors">
                         <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
                     </button>
                 </div>
@@ -807,7 +810,7 @@ const updateCartDisplay = () => {
     lucide.createIcons();
 };
 
-const updatePaymentType = (type) => {
+window.updatePaymentType = (type) => { // Tornada global
     currentPaymentType = type;
     const customerSelectContainer = document.getElementById('customer-select-container');
     if (type === 'credit') {
@@ -817,10 +820,10 @@ const updatePaymentType = (type) => {
         selectedCustomerForSale = ''; // Limpa a seleção do cliente se mudar para à vista
         document.getElementById('sale-customer-select').value = '';
     }
-    updateProcessSaleButtonState();
+    window.updateProcessSaleButtonState();
 };
 
-const updateProcessSaleButtonState = () => {
+window.updateProcessSaleButtonState = () => { // Tornada global
     const processSaleBtn = document.getElementById('process-sale-btn');
     const customerSelect = document.getElementById('sale-customer-select');
 
@@ -836,7 +839,7 @@ const updateProcessSaleButtonState = () => {
     processSaleBtn.disabled = !isButtonEnabled;
 };
 
-const processSale = async () => {
+window.processSale = async () => { // Tornada global
     document.getElementById('sale-error-message').classList.add('hidden');
 
     if (saleCart.length === 0) {
@@ -905,7 +908,7 @@ const processSale = async () => {
         document.getElementById('customer-select-container').classList.add('hidden');
         document.getElementById('sale-customer-select').value = '';
         updateCartDisplay();
-        updateProcessSaleButtonState();
+        window.updateProcessSaleButtonState();
         showModal('Venda Realizada!', 'A venda foi processada com sucesso!', () => {});
 
     } catch (err) {
@@ -915,3 +918,141 @@ const processSale = async () => {
     }
 };
 
+// --- Renderização da View de Dashboard ---
+const renderDashboardView = async () => {
+    const mainContent = document.getElementById('main-content');
+    mainContent.innerHTML = `
+        <div class="bg-white rounded-lg shadow-xl p-6 mb-8">
+            <h2 class="text-3xl font-bold mb-6 text-gray-800 flex items-center">
+                <i data-lucide="bar-chart-2" class="mr-3 text-blue-600"></i> Dashboard de Vendas
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-blue-100 p-6 rounded-lg shadow-md flex items-center">
+                    <i data-lucide="dollar-sign" class="text-blue-600 mr-4" style="width: 32px; height: 32px;"></i>
+                    <div>
+                        <p class="text-lg text-gray-700">Total de Vendas</p>
+                        <p id="total-sales" class="text-3xl font-bold text-blue-800">Carregando...</p>
+                    </div>
+                </div>
+                <div class="bg-orange-100 p-6 rounded-lg shadow-md flex items-center">
+                    <i data-lucide="alert-circle" class="text-orange-600 mr-4" style="width: 32px; height: 32px;"></i>
+                    <div>
+                        <p class="text-lg text-gray-700">Dívida Total de Clientes</p>
+                        <p id="total-debt" class="text-3xl font-bold text-orange-800">Carregando...</p>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="text-2xl font-semibold mb-4 text-gray-800 flex items-center">
+                <i data-lucide="receipt" class="mr-2 text-blue-600" style="width: 20px; height: 20px;"></i> Últimas Transações
+            </h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 rounded-lg overflow-hidden shadow-md">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Tipo
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Descrição
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Valor
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Data
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactions-table-body" class="bg-white divide-y divide-gray-200">
+                        <!-- Transações serão carregadas aqui -->
+                    </tbody>
+                </table>
+                <p id="no-transactions-message" class="px-6 py-4 text-center text-sm text-gray-500 hidden">Nenhuma transação registrada.</p>
+            </div>
+        </div>
+    `;
+    lucide.createIcons();
+
+    if (!window.db || !window.userId) {
+        document.getElementById('total-sales').textContent = "Erro";
+        document.getElementById('total-debt').textContent = "Erro";
+        document.getElementById('transactions-table-body').innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-sm text-red-500">Firebase não inicializado.</td></tr>`;
+        return;
+    }
+
+    try {
+        // Carregar Total de Vendas
+        const salesQuery = window.firebaseModules.query(
+            window.firebaseModules.collection(window.db, `artifacts/${window.appId}/users/${window.userId}/transactions`),
+            window.firebaseModules.where('type', '==', 'sale')
+        );
+        const salesSnapshot = await window.firebaseModules.getDocs(salesQuery);
+        let totalSalesAmount = 0;
+        salesSnapshot.forEach(doc => {
+            totalSalesAmount += doc.data().totalAmount || 0;
+        });
+        document.getElementById('total-sales').textContent = formatCurrency(totalSalesAmount);
+
+        // Carregar Dívida Total de Clientes
+        const customersCollectionRef = window.firebaseModules.collection(window.db, `artifacts/${window.appId}/users/${window.userId}/customers`);
+        const customersSnapshot = await window.firebaseModules.getDocs(customersCollectionRef);
+        let totalDebtAmount = 0;
+        customersSnapshot.forEach(doc => {
+            totalDebtAmount += doc.data().totalDue || 0;
+        });
+        document.getElementById('total-debt').textContent = formatCurrency(totalDebtAmount);
+
+        // Carregar Últimas Transações
+        const transactionsCollectionRef = window.firebaseModules.collection(window.db, `artifacts/${window.appId}/users/${window.userId}/transactions`);
+        const transactionsSnapshot = await window.firebaseModules.getDocs(transactionsCollectionRef); // Get all for simplicity, could add orderBy and limit
+        let transactions = [];
+        transactionsSnapshot.forEach(doc => {
+            transactions.push({ id: doc.id, ...doc.data() });
+        });
+
+        // Ordenar por data (mais recente primeiro)
+        transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        const tableBody = document.getElementById('transactions-table-body');
+        tableBody.innerHTML = '';
+        const noTransactionsMessage = document.getElementById('no-transactions-message');
+
+        if (transactions.length === 0) {
+            noTransactionsMessage.classList.remove('hidden');
+        } else {
+            noTransactionsMessage.classList.add('hidden');
+            transactions.slice(0, 10).forEach(transaction => { // Exibe as últimas 10 transações
+                const row = tableBody.insertRow();
+                const transactionDate = new Date(transaction.date).toLocaleDateString('pt-BR', {
+                    year: 'numeric', month: 'numeric', day: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                });
+                let description = '';
+                if (transaction.type === 'sale') {
+                    description = `Venda para ${transaction.customerId ? (currentCustomers.find(c => c.id === transaction.customerId)?.name || 'Cliente Desconhecido') : 'À Vista'}`;
+                } else if (transaction.type === 'payment') {
+                    description = `Pagamento de ${transaction.customerName || 'Cliente Desconhecido'}`;
+                }
+
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 capitalize">${transaction.type === 'sale' ? 'Venda' : 'Pagamento'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${description}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm ${transaction.type === 'sale' ? 'text-red-600' : 'text-green-600'} font-semibold">${formatCurrency(transaction.totalAmount || transaction.amount || 0)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${transactionDate}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 capitalize">${transaction.status === 'pending' ? 'Pendente' : 'Pago'}</td>
+                `;
+            });
+        }
+
+    } catch (error) {
+        console.error("Erro ao carregar dashboard:", error);
+        document.getElementById('total-sales').textContent = "Erro";
+        document.getElementById('total-debt').textContent = "Erro";
+        document.getElementById('transactions-table-body').innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-sm text-red-500">Erro ao carregar dados.</td></tr>`;
+    }
+};
