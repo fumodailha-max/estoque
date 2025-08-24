@@ -1,6 +1,59 @@
+// Importa os módulos do Firebase
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+// Variáveis globais para Firebase (serão inicializadas aqui)
+window.firebaseApp = null;
+window.db = null;
+window.auth = null;
+window.userId = null;
+window.appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; // Captura o ID do aplicativo
+
+// Configuração do Firebase - SUBSTITUA PELAS SUAS CREDENCIAIS
+const firebaseConfig = {
+    apiKey: "AIzaSyBszbg1MsMFxK5Si_VuXzdQZTpKfAmiAME",
+    authDomain: "fdiestoque.firebaseapp.com",
+    projectId: "fdiestoque",
+    storageBucket: "fdiestoque.firebasestorage.app",
+    messagingSenderId: "125497955543",
+    appId: "1:125497955543:web:c820dcb7e2a99ffdcc0c92"
+};
+
+// Inicializa o Firebase e a autenticação
+window.initFirebase = async () => {
+    try {
+        const config = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_firebase_config) : firebaseConfig; // Usa a config do ambiente ou a local
+        window.firebaseApp = initializeApp(config);
+        window.db = getFirestore(window.firebaseApp);
+        window.auth = getAuth(window.firebaseApp);
+
+        // Escuta as mudanças de estado de autenticação
+        onAuthStateChanged(window.auth, async (user) => {
+            if (user) {
+                window.userId = user.uid;
+                console.log("Usuário autenticado:", window.userId);
+            } else {
+                const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                if (initialAuthToken) {
+                    await signInWithCustomToken(window.auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(window.auth);
+                }
+            }
+            // Quando o Firebase estiver pronto, carrega a página de estoque
+            window.loadPage('estoque');
+        });
+
+    } catch (error) {
+        console.error("Erro ao inicializar Firebase:", error);
+        document.getElementById('main-content').innerHTML = `<div class="text-center text-red-500 text-lg mt-8">Erro ao carregar o Firebase. Verifique suas credenciais.</div>`;
+    }
+};
+
 // Garante que o DOM esteja totalmente carregado antes de inicializar o Firebase e o aplicativo
 document.addEventListener('DOMContentLoaded', () => {
-    window.initFirebase(); // Chama a função de inicialização do Firebase definida em index.html
+    window.initFirebase(); // Chama a função de inicialização do Firebase definida globalmente
 });
 
 // Helper para formatar moeda
