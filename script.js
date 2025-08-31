@@ -189,9 +189,12 @@ const handlePay = async () => {
     try {
         const newTotalDue = (customer.totalDue || 0) - paymentAmount;
         await updateDoc(doc(window.db, `users/${window.currentUser.uid}/customers`, customerToPayId), { totalDue: newTotalDue });
-        await addDoc(collection(window.db, `users/${window.currentUser.uid}/transactions`), {
+        
+        // CORREÇÃO AQUI
+        await addDoc(collection(window.db, "transactions"), {
             type: 'payment', customerId: customerToPayId, customerName: customer.name, amount: paymentAmount, date: new Date().toISOString(),
         });
+
         showModal('Sucesso!', 'Pagamento registrado com sucesso!', () => {});
         customerToPayId = null;
     } catch (err) {
@@ -582,13 +585,16 @@ window.updatePaymentType = (type) => {
     document.getElementById('card-type-container').classList.toggle('hidden', currentPaymentType !== 'card');
     if (currentPaymentType !== 'credit') {
         selectedCustomerForSale = '';
-        document.getElementById('sale-customer-select').value = '';
+        if(document.getElementById('sale-customer-select')) {
+            document.getElementById('sale-customer-select').value = '';
+        }
     }
     updateProcessSaleButtonState();
 };
 
 window.updateProcessSaleButtonState = () => {
     const btn = document.getElementById('process-sale-btn');
+    if(!btn) return;
     let enabled = saleCart.length > 0;
     if (currentPaymentType === 'credit') {
         selectedCustomerForSale = document.getElementById('sale-customer-select').value;
@@ -604,8 +610,16 @@ window.processSale = async () => {
     const saleErrorText = document.getElementById('sale-error-text');
     saleError.classList.add('hidden');
 
-    if (saleCart.length === 0) { /* ... */ return; }
-    if (currentPaymentType === 'credit' && !selectedCustomerForSale) { /* ... */ return; }
+    if (saleCart.length === 0) {
+        saleErrorText.textContent = "O carrinho está vazio.";
+        saleError.classList.remove('hidden');
+        return;
+    }
+    if (currentPaymentType === 'credit' && !selectedCustomerForSale) {
+        saleErrorText.textContent = "Por favor, selecione um cliente para vendas a prazo.";
+        saleError.classList.remove('hidden');
+        return;
+    }
     
     try {
         const totalAmount = saleCart.reduce((acc, item) => acc + (item.sellPrice * item.quantityInCart), 0);
@@ -617,7 +631,7 @@ window.processSale = async () => {
             customerId: currentPaymentType === 'credit' ? selectedCustomerForSale : null,
             status: currentPaymentType === 'credit' ? 'pending' : 'paid',
         };
-        await addDoc(collection(window.db, `users/${window.currentUser.uid}/transactions`), transactionData);
+        await addDoc(collection(window.db, "transactions"), transactionData);
 
         const batch = writeBatch(window.db);
         saleCart.forEach(item => {
@@ -678,6 +692,7 @@ const loadCustomersForSale = () => {
     if (!window.currentUser.uid) return;
     onSnapshot(collection(window.db, `users/${window.currentUser.uid}/customers`), (snapshot) => {
         const customers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        currentCustomers = customers; // Atualiza a lista global de clientes
         const select = document.getElementById('sale-customer-select');
         select.innerHTML = '<option value="">Selecione um cliente</option>';
         customers.forEach(customer => {
@@ -724,7 +739,7 @@ const loadDashboardData = async () => {
         customersSnapshot.forEach(doc => { totalDebtAmount += doc.data().totalDue || 0; });
         document.getElementById('total-debt').textContent = formatCurrency(totalDebtAmount);
 
-        let transactionsQuery = query(collection(window.db, `users/${window.currentUser.uid}/transactions`));
+        let transactionsQuery = query(collection(window.db, "transactions")); // CAMINHO ALTERADO
         const startDate = document.getElementById('start-date').value;
         const endDate = document.getElementById('end-date').value;
         if (startDate) transactionsQuery = query(transactionsQuery, where('date', '>=', `${startDate}T00:00:00.000Z`));
