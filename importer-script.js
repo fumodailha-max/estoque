@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, collection, writeBatch, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // Suas credenciais do Firebase
 const firebaseConfig = {
@@ -58,38 +58,44 @@ document.getElementById('import-btn').addEventListener('click', async () => {
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlContent, 'text/html');
 
-            // --- IMPORTANTE: AJUSTE ESTA PARTE ---
-            // Você precisa dizer ao script onde encontrar os produtos no seu HTML.
-            // O seletor '.produto-item' é um EXEMPLO. Substitua pelo seletor correto do seu arquivo.
-            const productElements = doc.querySelectorAll('.produto-item'); 
+            // --- CÓDIGO AJUSTADO PARA O SEU ARQUIVO ---
+            const allRows = doc.querySelectorAll('table tr');
             
+            // Remove a primeira linha (que é o cabeçalho)
+            const productElements = Array.from(allRows).slice(1);
+
             if (productElements.length === 0) {
-                 statusDiv.innerHTML = `<p class="text-red-500">Nenhum produto encontrado no arquivo. Verifique o seletor no arquivo 'importer-script.js'. O seletor de exemplo é '.produto-item'.</p>`;
+                 statusDiv.innerHTML = `<p class="text-red-500">Nenhuma linha de produto foi encontrada na tabela do arquivo. Verifique se o arquivo HTML selecionado está correto.</p>`;
                  return;
             }
 
             const batch = writeBatch(db);
             let importedCount = 0;
 
-            productElements.forEach(el => {
-                // EXTRATOR DE DADOS: Ajuste os seletores abaixo para que correspondam à estrutura do seu HTML
-                const name = el.querySelector('.nome-produto')?.innerText || 'Nome não encontrado';
-                const sellPriceText = el.querySelector('.preco-venda')?.innerText.replace('R$', '').replace(',', '.').trim() || '0';
+            productElements.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length < 8) return; // Pula linhas mal formatadas
+
+                // Extrai os dados baseado na posição da coluna
+                const barcode = cells[0]?.innerText.trim() || '';
+                const name = cells[1]?.innerText.trim() || 'Nome não encontrado';
+                const sellPriceText = cells[4]?.innerText.replace(',', '.').trim() || '0';
+                const costPriceText = cells[6]?.innerText.replace(',', '.').trim() || '0';
+                const quantityText = cells[7]?.innerText.trim() || '0';
                 
-                // Valores padrão que você pode ajustar
-                const quantity = 1; // Ou extraia do HTML se disponível
-                const costPrice = 0; // Preço de custo padrão
-                const barcode = '';  // Código de barras padrão
+                // Ignora "produtos" que são apenas taxas de entrega
+                if (name.toUpperCase().includes('TAXA DE ENTREGA')) {
+                    return; 
+                }
                 
                 const productData = {
                     name: name,
-                    sellPrice: parseFloat(sellPriceText),
-                    quantity: parseInt(quantity),
-                    costPrice: parseFloat(costPrice),
-                    barcode: barcode
+                    barcode: barcode,
+                    quantity: parseInt(quantityText) || 0,
+                    costPrice: parseFloat(costPriceText) || 0,
+                    sellPrice: parseFloat(sellPriceText) || 0,
                 };
                 
-                // Adiciona a operação de criação ao "batch" (pacote de operações)
                 const productRef = doc(collection(db, `artifacts/default-app-id/users/${currentUser.uid}/products`));
                 batch.set(productRef, productData);
                 importedCount++;
