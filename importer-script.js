@@ -56,12 +56,11 @@ document.getElementById('import-btn').addEventListener('click', async () => {
             statusDiv.innerHTML = `<p class="text-yellow-400">Lendo arquivo e processando produtos...</p>`;
             const htmlContent = event.target.result;
             const parser = new DOMParser();
-            const doc = parser.parseFromString(htmlContent, 'text/html');
+            // **CORREÇÃO AQUI:** Renomeei a variável 'doc' para 'parsedHtml'
+            const parsedHtml = parser.parseFromString(htmlContent, 'text/html');
 
-            // --- CÓDIGO AJUSTADO PARA O SEU ARQUIVO ---
-            const allRows = doc.querySelectorAll('table tr');
+            const allRows = parsedHtml.querySelectorAll('table tr');
             
-            // Remove a primeira linha (que é o cabeçalho)
             const productElements = Array.from(allRows).slice(1);
 
             if (productElements.length === 0) {
@@ -74,16 +73,14 @@ document.getElementById('import-btn').addEventListener('click', async () => {
 
             productElements.forEach(row => {
                 const cells = row.querySelectorAll('td');
-                if (cells.length < 8) return; // Pula linhas mal formatadas
+                if (cells.length < 8) return;
 
-                // Extrai os dados baseado na posição da coluna
                 const barcode = cells[0]?.innerText.trim() || '';
                 const name = cells[1]?.innerText.trim() || 'Nome não encontrado';
                 const sellPriceText = cells[4]?.innerText.replace(',', '.').trim() || '0';
                 const costPriceText = cells[6]?.innerText.replace(',', '.').trim() || '0';
                 const quantityText = cells[7]?.innerText.trim() || '0';
                 
-                // Ignora "produtos" que são apenas taxas de entrega
                 if (name.toUpperCase().includes('TAXA DE ENTREGA')) {
                     return; 
                 }
@@ -96,12 +93,12 @@ document.getElementById('import-btn').addEventListener('click', async () => {
                     sellPrice: parseFloat(sellPriceText) || 0,
                 };
                 
+                // **CORREÇÃO AQUI:** Agora a função 'doc' do Firebase pode ser usada sem conflito
                 const productRef = doc(collection(db, `artifacts/default-app-id/users/${currentUser.uid}/products`));
                 batch.set(productRef, productData);
                 importedCount++;
             });
 
-            // Envia todos os produtos para o Firebase de uma vez
             await batch.commit();
 
             statusDiv.innerHTML = `<p class="text-green-500">Sucesso! ${importedCount} produtos foram importados.</p>`;
