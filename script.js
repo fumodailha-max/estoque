@@ -1,6 +1,6 @@
 // Importa os módulos do Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, onSnapshot, query, where, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // Variáveis globais para Firebase e estado do usuário
@@ -18,7 +18,7 @@ let selectedCustomerForSale = '';
 let currentPaymentType = 'cash';
 let customerToPayId = null;
 
-// Configuração do Firebase - SUBSTITUA PELAS SUAS CREDENCIAIS
+// Configuração do Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyBszbg1MsMFxK5Si_VuXzdQZTpKfAmiAME",
     authDomain: "fdiestoque.firebaseapp.com",
@@ -37,9 +37,10 @@ const initFirebaseAndAuth = async () => {
         window.auth = getAuth(window.firebaseApp);
 
         onAuthStateChanged(window.auth, async (user) => {
+            const isLoginPage = window.location.pathname.endsWith('login.html');
+
             if (user) {
-                console.log("Usuário autenticado:", user.uid);
-                // Busca o documento do usuário para obter o 'role'
+                // --- USUÁRIO ESTÁ LOGADO ---
                 const userRef = doc(window.db, `users`, user.uid);
                 const userSnap = await getDoc(userRef);
                 
@@ -47,18 +48,26 @@ const initFirebaseAndAuth = async () => {
                     window.currentUser.uid = user.uid;
                     window.currentUser.role = userSnap.data().role;
                     console.log("Role do usuário:", window.currentUser.role);
-                    // Redireciona para a página principal após o login
-                    window.location.href = 'index.html'; 
+                    
+                    // Se o usuário logado estiver na página de login, o enviamos para o sistema.
+                    if (isLoginPage) {
+                        window.location.href = 'index.html';
+                    } else {
+                        // Se ele já estiver no sistema, carregamos a primeira página (Estoque).
+                        loadPage('estoque');
+                    }
                 } else {
                     console.log("Nenhum documento de usuário encontrado. Saindo.");
-                    window.auth.signOut();
+                    signOut(window.auth);
                 }
 
             } else {
+                // --- USUÁRIO ESTÁ DESLOGADO ---
                 window.currentUser.uid = null;
                 window.currentUser.role = null;
-                // Redireciona para a tela de login se não houver usuário autenticado e a página atual não for a de login
-                if (window.location.pathname.endsWith('index.html')) {
+                
+                // Se o usuário deslogado NÃO estiver na página de login, forçamos o redirecionamento para ela.
+                if (!isLoginPage) {
                     window.location.href = 'login.html';
                 }
             }
@@ -77,8 +86,8 @@ const handleLoginForm = async (event) => {
     errorMessageElem.classList.add('hidden');
 
     try {
-        const userCredential = await signInWithEmailAndPassword(window.auth, email, password);
-        // O onAuthStateChanged irá cuidar do resto do redirecionamento
+        await signInWithEmailAndPassword(window.auth, email, password);
+        // O onAuthStateChanged irá cuidar do redirecionamento após o login.
     } catch (error) {
         let message = "Erro ao fazer login. Tente novamente.";
         if (error.code === 'auth/invalid-email' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
@@ -88,6 +97,13 @@ const handleLoginForm = async (event) => {
         errorMessageElem.classList.remove('hidden');
         console.error("Erro de login:", error);
     }
+};
+
+// **NOVA FUNÇÃO** Para fazer logout
+window.handleSignOut = () => {
+    signOut(window.auth).catch((error) => {
+        console.error("Erro ao fazer logout:", error);
+    });
 };
 
 // Garante que o DOM esteja totalmente carregado
@@ -115,6 +131,7 @@ const formatCurrency = (value) => {
 // --- Funções de Modal Customizado ---
 const showModal = (title, message, onConfirm, onCancel = null, confirmText = 'Confirmar', cancelText = 'Cancelar', contentHtml = '') => {
     const modal = document.getElementById('custom-modal');
+    if (!modal) return;
     document.getElementById('modal-title').innerHTML = `<i data-lucide="info" class="mr-2 text-blue-500" style="width: 24px; height: 24px;"></i> ${title}`;
     document.getElementById('modal-message').innerHTML = message;
     document.getElementById('modal-content-area').innerHTML = contentHtml; // Adiciona conteúdo HTML dinâmico
@@ -144,15 +161,19 @@ const showModal = (title, message, onConfirm, onCancel = null, confirmText = 'Co
 };
 
 const hideModal = () => {
-    document.getElementById('custom-modal').classList.add('hidden');
-    document.getElementById('modal-content-area').innerHTML = ''; // Limpa o conteúdo dinâmico
+    const modal = document.getElementById('custom-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        document.getElementById('modal-content-area').innerHTML = ''; // Limpa o conteúdo dinâmico
+    }
 };
 
 
 // --- Gerenciamento de Páginas ---
 window.loadPage = (pageName) => {
     const mainContent = document.getElementById('main-content');
-    mainContent.innerHTML = ''; // Limpa o conteúdo atual
+    if (!mainContent) return;
+    mainContent.innerHTML = 'Carregando...'; // Limpa o conteúdo atual
 
     // Verifica se a página solicitada é o Dashboard e se o usuário tem permissão
     if (pageName === 'dashboard' && window.currentUser.role !== 'admin') {
@@ -164,6 +185,7 @@ window.loadPage = (pageName) => {
         document.querySelectorAll('nav button').forEach(btn => {
             btn.classList.remove('nav-active');
         });
+        document.getElementById(`nav-${pageName}`).classList.add('nav-active'); // Marca o dashboard mesmo assim
         return;
     }
 
@@ -171,7 +193,9 @@ window.loadPage = (pageName) => {
     document.querySelectorAll('nav button').forEach(btn => {
         btn.classList.remove('nav-active');
     });
-    document.getElementById(`nav-${pageName}`).classList.add('nav-active');
+    const activeButton = document.getElementById(`nav-${pageName}`);
+    if(activeButton) activeButton.classList.add('nav-active');
+
 
     switch (pageName) {
         case 'estoque':
