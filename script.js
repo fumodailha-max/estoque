@@ -570,14 +570,69 @@ window.updatePaymentType = (type) => {
 window.updateProcessSaleButtonState = () => {
     const btn = document.getElementById('process-sale-btn');
     let enabled = saleCart.length > 0;
-    if (currentPaymentType === 'credit' && !document.getElementById('sale-customer-select').value) {
-        enabled = false;
+    if (currentPaymentType === 'credit') {
+        selectedCustomerForSale = document.getElementById('sale-customer-select').value;
+        if (!selectedCustomerForSale) {
+            enabled = false;
+        }
     }
     btn.disabled = !enabled;
 };
 
 window.processSale = async () => {
-    // ... (Lógica de processar venda, mantida como está)
+    const saleError = document.getElementById('sale-error-message');
+    const saleErrorText = document.getElementById('sale-error-text');
+    saleError.classList.add('hidden');
+
+    if (saleCart.length === 0) {
+        saleErrorText.textContent = "O carrinho está vazio.";
+        saleError.classList.remove('hidden');
+        return;
+    }
+    if (currentPaymentType === 'credit' && !selectedCustomerForSale) {
+        saleErrorText.textContent = "Por favor, selecione um cliente para vendas a prazo.";
+        saleError.classList.remove('hidden');
+        return;
+    }
+    try {
+        const totalAmount = saleCart.reduce((acc, item) => acc + (item.sellPrice * item.quantityInCart), 0);
+        const transactionData = {
+            type: 'sale',
+            date: new Date().toISOString(),
+            items: saleCart,
+            totalAmount,
+            paymentType: currentPaymentType,
+            cardType: currentPaymentType === 'card' ? document.querySelector('input[name="cardType"]:checked').value : null,
+            customerId: currentPaymentType === 'credit' ? selectedCustomerForSale : null,
+            status: currentPaymentType === 'credit' ? 'pending' : 'paid',
+        };
+        await addDoc(collection(window.db, `users/${window.currentUser.uid}/transactions`), transactionData);
+
+        const batch = writeBatch(window.db);
+        saleCart.forEach(item => {
+            const productRef = doc(window.db, "products", item.id);
+            const newQuantity = item.quantity - item.quantityInCart;
+            batch.update(productRef, { quantity: newQuantity });
+        });
+        await batch.commit();
+
+        if (currentPaymentType === 'credit' && selectedCustomerForSale) {
+            const customerRef = doc(window.db, `users/${window.currentUser.uid}/customers`, selectedCustomerForSale);
+            const customer = currentCustomers.find(c => c.id === selectedCustomerForSale);
+            const newTotalDue = (customer.totalDue || 0) + totalAmount;
+            await updateDoc(customerRef, { totalDue: newTotalDue });
+        }
+        
+        saleCart = [];
+        updateCartDisplay();
+        updateProcessSaleButtonState();
+        showModal('Venda Realizada!', 'A venda foi processada com sucesso!', () => {});
+
+    } catch (err) {
+        console.error("Erro ao processar venda:", err);
+        saleErrorText.textContent = `Erro: ${err.message}`;
+        saleError.classList.remove('hidden');
+    }
 };
 
 const loadProductsForSale = () => {
@@ -621,9 +676,80 @@ const loadCustomersForSale = () => {
 
 // --- Renderização da View de Dashboard ---
 const renderDashboardView = async () => {
-    // ... (Código do dashboard, mantido como está)
+    const mainContent = document.getElementById('main-content');
+    mainContent.innerHTML = `
+        <div class="bg-gray-900 rounded-lg border border-orange-600/50 shadow-neon p-6 mb-8">
+            <h2 class="text-3xl font-chakra font-bold mb-6 text-orange-400 flex items-center"><i data-lucide="bar-chart-2" class="mr-3 text-orange-600"></i> Dashboard de Vendas</h2>
+            <div class="mb-6 flex flex-wrap items-end gap-4">
+                <div><label for="start-date" class="block text-sm font-medium text-gray-400">Data Inicial</label><input type="date" id="start-date" class="mt-1 block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2"></div>
+                <div><label for="end-date" class="block text-sm font-medium text-gray-400">Data Final</label><input type="date" id="end-date" class="mt-1 block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2"></div>
+                <button id="filter-dashboard-btn" class="px-4 py-2 bg-orange-600 text-white font-medium rounded-md hover:bg-orange-700 transition-colors flex items-center justify-center shadow-orange"><i data-lucide="filter" class="mr-2"></i> Filtrar</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-gray-800 p-6 rounded-lg border border-orange-600/50 flex items-center"><i data-lucide="dollar-sign" class="text-green-500 mr-4" style="width: 32px; height: 32px;"></i><div><p class="text-lg text-gray-400">Total de Vendas</p><p id="total-sales" class="text-3xl font-bold text-green-400">Carregando...</p></div></div>
+                <div class="bg-gray-800 p-6 rounded-lg border border-orange-600/50 flex items-center"><i data-lucide="alert-circle" class="text-red-500 mr-4" style="width: 32px; height: 32px;"></i><div><p class="text-lg text-gray-400">Dívida Total de Clientes</p><p id="total-debt" class="text-3xl font-bold text-red-400">Carregando...</p></div></div>
+            </div>
+            <h3 class="text-2xl font-chakra font-semibold mb-4 text-orange-400 flex items-center"><i data-lucide="receipt" class="mr-2 text-orange-600" style="width: 20px; height: 20px;"></i> Últimas Transações</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-700 rounded-lg overflow-hidden border border-gray-700">
+                    <thead class="bg-gray-800"><tr><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Tipo</th><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Descrição</th><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Valor</th><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Data</th><th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th></tr></thead>
+                    <tbody id="transactions-table-body" class="bg-gray-900 divide-y divide-gray-700"></tbody>
+                </table>
+                <p id="no-transactions-message" class="px-6 py-4 text-center text-sm text-gray-500 hidden">Nenhuma transação registrada.</p>
+            </div>
+        </div>
+    `;
+    lucide.createIcons();
+    document.getElementById('filter-dashboard-btn').addEventListener('click', loadDashboardData);
+    loadDashboardData();
 };
 
 const loadDashboardData = async () => {
-    // ... (Código do dashboard, mantido como está)
+    if (!window.db || !window.currentUser.uid) return;
+    try {
+        const customersSnapshot = await getDocs(collection(window.db, `users/${window.currentUser.uid}/customers`));
+        let totalDebtAmount = 0;
+        customersSnapshot.forEach(doc => { totalDebtAmount += doc.data().totalDue || 0; });
+        document.getElementById('total-debt').textContent = formatCurrency(totalDebtAmount);
+
+        let transactionsQuery = query(collection(window.db, `users/${window.currentUser.uid}/transactions`));
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
+        if (startDate) transactionsQuery = query(transactionsQuery, where('date', '>=', `${startDate}T00:00:00.000Z`));
+        if (endDate) transactionsQuery = query(transactionsQuery, where('date', '<=', `${endDate}T23:59:59.999Z`));
+        
+        const transactionsSnapshot = await getDocs(transactionsQuery);
+        let totalSalesAmount = 0;
+        let transactions = transactionsSnapshot.docs.map(doc => {
+            const data = doc.data();
+            if (data.type === 'sale') totalSalesAmount += data.totalAmount || 0;
+            return { id: doc.id, ...data };
+        });
+        document.getElementById('total-sales').textContent = formatCurrency(totalSalesAmount);
+        
+        transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+        const tableBody = document.getElementById('transactions-table-body');
+        const noTransactionsMessage = document.getElementById('no-transactions-message');
+        tableBody.innerHTML = '';
+        noTransactionsMessage.classList.toggle('hidden', transactions.length > 0);
+        
+        transactions.slice(0, 10).forEach(transaction => {
+            const row = tableBody.insertRow();
+            let description = '';
+            if (transaction.type === 'sale') {
+                description = `Venda para ${transaction.customerId ? (currentCustomers.find(c=>c.id === transaction.customerId)?.name || 'Cliente') : 'À Vista'}`;
+            } else if (transaction.type === 'payment') {
+                description = `Pagamento de ${transaction.customerName || 'Cliente'}`;
+            }
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm capitalize">${transaction.type === 'sale' ? 'Venda' : 'Pagamento'}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm">${description}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold ${transaction.type === 'sale' ? 'text-orange-400' : 'text-green-400'}">${formatCurrency(transaction.amount || transaction.totalAmount || 0)}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm">${new Date(transaction.date).toLocaleString('pt-BR')}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm capitalize">${transaction.status || 'Pago'}</td>
+            `;
+        });
+    } catch (error) {
+        console.error("Erro ao carregar dashboard:", error);
+    }
 };
