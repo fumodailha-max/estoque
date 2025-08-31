@@ -3,13 +3,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebas
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, onSnapshot, query, where, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Variáveis globais para Firebase e estado do usuário
+// Variáveis globais
 window.firebaseApp = null;
 window.db = null;
 window.auth = null;
 window.currentUser = { uid: null, role: null };
-
-// Variáveis de estado do aplicativo
 let currentProducts = [];
 let currentCustomers = [];
 let saleCart = [];
@@ -169,7 +167,7 @@ window.confirmDeleteProduct = (productId, productName) => showModal('Confirmar E
 
 const deleteCustomer = async (customerId) => {
     try {
-        await deleteDoc(doc(window.db, `users/${window.currentUser.uid}/customers`, customerId));
+        await deleteDoc(doc(window.db, "customers", customerId));
         showModal('Sucesso!', 'Cliente excluído com sucesso.', () => {});
     } catch (err) {
         console.error("Erro ao excluir cliente:", err);
@@ -188,13 +186,11 @@ const handlePay = async () => {
     }
     try {
         const newTotalDue = (customer.totalDue || 0) - paymentAmount;
-        await updateDoc(doc(window.db, `users/${window.currentUser.uid}/customers`, customerToPayId), { totalDue: newTotalDue });
+        await updateDoc(doc(window.db, "customers", customerToPayId), { totalDue: newTotalDue });
         
-        // CORREÇÃO AQUI
         await addDoc(collection(window.db, "transactions"), {
             type: 'payment', customerId: customerToPayId, customerName: customer.name, amount: paymentAmount, date: new Date().toISOString(),
         });
-
         showModal('Sucesso!', 'Pagamento registrado com sucesso!', () => {});
         customerToPayId = null;
     } catch (err) {
@@ -374,8 +370,8 @@ const renderClientesView = () => {
 };
 
 const loadCustomers = () => {
-    if (!window.db || !window.currentUser.uid) return;
-    const customersCollectionRef = collection(window.db, `users/${window.currentUser.uid}/customers`);
+    if (!window.db) return;
+    const customersCollectionRef = collection(window.db, "customers");
     onSnapshot(customersCollectionRef, (snapshot) => {
         currentCustomers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         displayCustomers(currentCustomers);
@@ -419,10 +415,10 @@ const handleCustomerSubmit = async (event) => {
     }
     try {
         if (customerId) {
-            await updateDoc(doc(window.db, `users/${window.currentUser.uid}/customers`, customerId), customerData);
+            await updateDoc(doc(window.db, "customers", customerId), customerData);
             showModal('Sucesso!', `O cliente "${customerData.name}" foi atualizado.`, () => {});
         } else {
-            await addDoc(collection(window.db, `users/${window.currentUser.uid}/customers`), customerData);
+            await addDoc(collection(window.db, "customers"), customerData);
             showModal('Sucesso!', `O cliente "${customerData.name}" foi adicionado.`, () => {});
         }
         cancelEditCustomer();
@@ -610,16 +606,8 @@ window.processSale = async () => {
     const saleErrorText = document.getElementById('sale-error-text');
     saleError.classList.add('hidden');
 
-    if (saleCart.length === 0) {
-        saleErrorText.textContent = "O carrinho está vazio.";
-        saleError.classList.remove('hidden');
-        return;
-    }
-    if (currentPaymentType === 'credit' && !selectedCustomerForSale) {
-        saleErrorText.textContent = "Por favor, selecione um cliente para vendas a prazo.";
-        saleError.classList.remove('hidden');
-        return;
-    }
+    if (saleCart.length === 0) { /* ... */ return; }
+    if (currentPaymentType === 'credit' && !selectedCustomerForSale) { /* ... */ return; }
     
     try {
         const totalAmount = saleCart.reduce((acc, item) => acc + (item.sellPrice * item.quantityInCart), 0);
@@ -643,7 +631,7 @@ window.processSale = async () => {
         await batch.commit();
 
         if (currentPaymentType === 'credit' && selectedCustomerForSale) {
-            const customerRef = doc(window.db, `users/${window.currentUser.uid}/customers`, selectedCustomerForSale);
+            const customerRef = doc(window.db, "customers", selectedCustomerForSale);
             const customer = currentCustomers.find(c => c.id === selectedCustomerForSale);
             const newTotalDue = (customer.totalDue || 0) + totalAmount;
             await updateDoc(customerRef, { totalDue: newTotalDue });
@@ -689,8 +677,7 @@ const displayAvailableProducts = (products) => {
 };
 
 const loadCustomersForSale = () => {
-    if (!window.currentUser.uid) return;
-    onSnapshot(collection(window.db, `users/${window.currentUser.uid}/customers`), (snapshot) => {
+    onSnapshot(collection(window.db, "customers"), (snapshot) => {
         const customers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         currentCustomers = customers; // Atualiza a lista global de clientes
         const select = document.getElementById('sale-customer-select');
@@ -732,14 +719,14 @@ const renderDashboardView = async () => {
 };
 
 const loadDashboardData = async () => {
-    if (!window.db || !window.currentUser.uid) return;
+    if (!window.db) return;
     try {
-        const customersSnapshot = await getDocs(collection(window.db, `users/${window.currentUser.uid}/customers`));
+        const customersSnapshot = await getDocs(collection(window.db, "customers"));
         let totalDebtAmount = 0;
         customersSnapshot.forEach(doc => { totalDebtAmount += doc.data().totalDue || 0; });
         document.getElementById('total-debt').textContent = formatCurrency(totalDebtAmount);
 
-        let transactionsQuery = query(collection(window.db, "transactions")); // CAMINHO ALTERADO
+        let transactionsQuery = query(collection(window.db, "transactions"));
         const startDate = document.getElementById('start-date').value;
         const endDate = document.getElementById('end-date').value;
         if (startDate) transactionsQuery = query(transactionsQuery, where('date', '>=', `${startDate}T00:00:00.000Z`));
@@ -764,9 +751,10 @@ const loadDashboardData = async () => {
             const row = tableBody.insertRow();
             let description = '';
             if (transaction.type === 'sale') {
-                description = `Venda para ${transaction.customerId ? (currentCustomers.find(c=>c.id === transaction.customerId)?.name || 'Cliente') : 'À Vista'}`;
+                const customer = currentCustomers.find(c=>c.id === transaction.customerId);
+                description = `Venda para ${customer ? customer.name : (transaction.paymentType === 'cash' ? 'À Vista' : 'Cliente Removido')}`;
             } else if (transaction.type === 'payment') {
-                description = `Pagamento de ${transaction.customerName || 'Cliente'}`;
+                description = `Pagamento de ${transaction.customerName || 'Cliente Removido'}`;
             }
             row.innerHTML = `
                 <td class="px-6 py-4 whitespace-nowrap text-sm capitalize">${transaction.type === 'sale' ? 'Venda' : 'Pagamento'}</td>
