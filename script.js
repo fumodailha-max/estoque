@@ -38,6 +38,7 @@ const initFirebaseAndAuth = async () => {
 
         onAuthStateChanged(window.auth, async (user) => {
             const isLoginPage = window.location.pathname.endsWith('login.html');
+            const dashboardNavButton = document.getElementById('nav-dashboard');
 
             if (user) {
                 // --- USUÁRIO ESTÁ LOGADO ---
@@ -48,12 +49,20 @@ const initFirebaseAndAuth = async () => {
                     window.currentUser.uid = user.uid;
                     window.currentUser.role = userSnap.data().role;
                     console.log("Role do usuário:", window.currentUser.role);
+
+                    // --- LÓGICA DE PERMISSÃO ---
+                    // Mostra ou esconde o botão do Dashboard baseado na role
+                    if (dashboardNavButton) {
+                        if (window.currentUser.role === 'admin') {
+                            dashboardNavButton.style.display = 'flex';
+                        } else {
+                            dashboardNavButton.style.display = 'none';
+                        }
+                    }
                     
-                    // Se o usuário logado estiver na página de login, o enviamos para o sistema.
                     if (isLoginPage) {
                         window.location.href = 'index.html';
                     } else {
-                        // Se ele já estiver no sistema, carregamos a primeira página (Estoque).
                         loadPage('estoque');
                     }
                 } else {
@@ -66,7 +75,11 @@ const initFirebaseAndAuth = async () => {
                 window.currentUser.uid = null;
                 window.currentUser.role = null;
                 
-                // Se o usuário deslogado NÃO estiver na página de login, forçamos o redirecionamento para ela.
+                // Esconde o botão do dashboard se não há usuário
+                if (dashboardNavButton) {
+                    dashboardNavButton.style.display = 'none';
+                }
+
                 if (!isLoginPage) {
                     window.location.href = 'login.html';
                 }
@@ -87,7 +100,6 @@ const handleLoginForm = async (event) => {
 
     try {
         await signInWithEmailAndPassword(window.auth, email, password);
-        // O onAuthStateChanged irá cuidar do redirecionamento após o login.
     } catch (error) {
         let message = "Erro ao fazer login. Tente novamente.";
         if (error.code === 'auth/invalid-email' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
@@ -99,43 +111,34 @@ const handleLoginForm = async (event) => {
     }
 };
 
-// **NOVA FUNÇÃO** Para fazer logout
 window.handleSignOut = () => {
     signOut(window.auth).catch((error) => {
         console.error("Erro ao fazer logout:", error);
     });
 };
 
-// Garante que o DOM esteja totalmente carregado
 document.addEventListener('DOMContentLoaded', () => {
-    // Inicializa o Firebase
     initFirebaseAndAuth();
-
-    // Adiciona o event listener para o formulário de login, se ele existir na página
     const loginForm = document.getElementById('login-form');
     if (loginForm) {
         loginForm.addEventListener('submit', handleLoginForm);
     }
-
-    // Inicializa os ícones Lucide
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
 });
 
-// Helper para formatar moeda
 const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
-// --- Funções de Modal Customizado ---
 const showModal = (title, message, onConfirm, onCancel = null, confirmText = 'Confirmar', cancelText = 'Cancelar', contentHtml = '') => {
     const modal = document.getElementById('custom-modal');
     if (!modal) return;
     document.getElementById('modal-title').innerHTML = `<i data-lucide="info" class="mr-2 text-blue-500" style="width: 24px; height: 24px;"></i> ${title}`;
     document.getElementById('modal-message').innerHTML = message;
-    document.getElementById('modal-content-area').innerHTML = contentHtml; // Adiciona conteúdo HTML dinâmico
-    lucide.createIcons(); // Recria os ícones Lucide no modal
+    document.getElementById('modal-content-area').innerHTML = contentHtml;
+    lucide.createIcons();
 
     const confirmBtn = document.getElementById('modal-confirm-btn');
     const cancelBtn = document.getElementById('modal-cancel-btn');
@@ -164,38 +167,32 @@ const hideModal = () => {
     const modal = document.getElementById('custom-modal');
     if (modal) {
         modal.classList.add('hidden');
-        document.getElementById('modal-content-area').innerHTML = ''; // Limpa o conteúdo dinâmico
+        document.getElementById('modal-content-area').innerHTML = '';
     }
 };
 
-
-// --- Gerenciamento de Páginas ---
 window.loadPage = (pageName) => {
     const mainContent = document.getElementById('main-content');
     if (!mainContent) return;
-    mainContent.innerHTML = 'Carregando...'; // Limpa o conteúdo atual
+    mainContent.innerHTML = 'Carregando...';
 
-    // Verifica se a página solicitada é o Dashboard e se o usuário tem permissão
     if (pageName === 'dashboard' && window.currentUser.role !== 'admin') {
         mainContent.innerHTML = `<div class="bg-gray-800 rounded-lg p-8 text-center mt-12">
             <h2 class="text-3xl font-bold text-red-500 mb-4">Acesso Negado</h2>
             <p class="text-gray-400">Você não tem permissão para acessar o Dashboard.</p>
         </div>`;
-        // Remove a classe 'nav-active' de todos os botões, mas não ativa nenhum
         document.querySelectorAll('nav button').forEach(btn => {
             btn.classList.remove('nav-active');
         });
-        document.getElementById(`nav-${pageName}`).classList.add('nav-active'); // Marca o dashboard mesmo assim
+        document.getElementById(`nav-${pageName}`).classList.add('nav-active');
         return;
     }
 
-    // Remove a classe 'nav-active' de todos os botões e adiciona ao botão clicado
     document.querySelectorAll('nav button').forEach(btn => {
         btn.classList.remove('nav-active');
     });
     const activeButton = document.getElementById(`nav-${pageName}`);
     if(activeButton) activeButton.classList.add('nav-active');
-
 
     switch (pageName) {
         case 'estoque':
@@ -215,7 +212,6 @@ window.loadPage = (pageName) => {
     }
 };
 
-// --- Funções globais para Produtos ---
 window.editProduct = (productId) => {
     const product = currentProducts.find(p => p.id === productId);
     if (product) {
@@ -235,7 +231,7 @@ window.confirmDeleteProduct = (productId, productName) => {
     showModal('Confirmar Exclusão',
               `Tem certeza que deseja excluir o produto "${productName}"? Esta ação não pode ser desfeita.`,
               () => deleteProduct(productId),
-              () => {}, // Não faz nada ao cancelar
+              () => {},
               'Excluir', 'Cancelar');
 };
 
@@ -250,7 +246,6 @@ const deleteProduct = async (productId) => {
     }
 };
 
-// --- Funções globais para Clientes ---
 window.editCustomer = (customerId) => {
     const customer = currentCustomers.find(c => c.id === customerId);
     if (customer) {
@@ -286,7 +281,7 @@ window.openPayModal = (customerId) => {
     const customer = currentCustomers.find(c => c.id === customerId);
     if (!customer) return;
 
-    customerToPayId = customerId; // Armazena o ID do cliente globalmente
+    customerToPayId = customerId;
     const contentHtml = `
         <p class="mb-2">Dívida atual: <span class="font-semibold text-orange-400">${formatCurrency(customer.totalDue || 0)}</span></p>
         <label for="payment-amount" class="block text-sm font-medium text-gray-400 mb-1">Valor do Pagamento (R$)</label>
@@ -303,7 +298,7 @@ window.openPayModal = (customerId) => {
 
     showModal(
         `Registrar Pagamento para ${customer.name}`,
-        '', // Mensagem principal vazia, pois o conteúdo é dinâmico
+        '',
         handlePay,
         () => { customerToPayId = null; },
         'Registrar Pagamento',
@@ -353,7 +348,6 @@ const handlePay = async () => {
     }
 };
 
-// --- Renderização da View de Estoque ---
 const renderEstoqueView = () => {
     const mainContent = document.getElementById('main-content');
     mainContent.innerHTML = `
@@ -361,7 +355,6 @@ const renderEstoqueView = () => {
             <h2 class="text-3xl font-chakra font-bold mb-6 text-orange-400 flex items-center">
                 <i data-lucide="package" class="mr-3 text-orange-600"></i> Gerenciar Estoque
             </h2>
-
             <div class="mb-6">
                 <label for="product-search" class="sr-only">Pesquisar produtos</label>
                 <div class="relative">
@@ -371,7 +364,6 @@ const renderEstoqueView = () => {
                     <input type="text" id="product-search" placeholder="Pesquisar por nome do produto..." class="block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2 pl-10">
                 </div>
             </div>
-
             <form id="product-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8 p-4 bg-gray-800 rounded-lg border-2 border-gray-700">
                 <input type="hidden" id="product-id">
                 <div class="col-span-1 md:col-span-2 lg:col-span-1">
@@ -403,43 +395,26 @@ const renderEstoqueView = () => {
                     </button>
                 </div>
             </form>
-
             <div id="product-error-message" class="text-red-500 text-center mb-4 hidden"></div>
-
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-700 rounded-lg overflow-hidden border border-gray-700">
                     <thead class="bg-gray-800">
                         <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                Produto
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                Código de Barras
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                Quantidade
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                Custo
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                Venda
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                Ações
-                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Produto</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Código de Barras</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Quantidade</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Custo</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Venda</th>
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Ações</th>
                         </tr>
                     </thead>
-                    <tbody id="products-table-body" class="bg-gray-900 divide-y divide-gray-700">
-                        </tbody>
+                    <tbody id="products-table-body" class="bg-gray-900 divide-y divide-gray-700"></tbody>
                 </table>
                 <p id="no-products-message" class="px-6 py-4 text-center text-sm text-gray-500 hidden">Nenhum produto cadastrado.</p>
             </div>
         </div>
     `;
-    lucide.createIcons(); // Inicializa os ícones Lucide para esta view
-
-    // Adiciona event listeners para o formulário de produto
+    lucide.createIcons();
     document.getElementById('product-form').addEventListener('submit', handleProductSubmit);
     document.getElementById('product-cancel-edit-btn').addEventListener('click', cancelEditProduct);
     document.getElementById('product-search').addEventListener('input', (e) => {
@@ -447,8 +422,6 @@ const renderEstoqueView = () => {
         const filteredProducts = currentProducts.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
         displayProducts(filteredProducts);
     });
-
-    // Carrega e exibe os produtos
     loadProducts();
 };
 
@@ -480,7 +453,6 @@ const displayProducts = (products) => {
 
     if (products.length === 0) {
         noProductsMessage.classList.remove('hidden');
-        return;
     } else {
         noProductsMessage.classList.add('hidden');
     }
@@ -522,13 +494,11 @@ const handleProductSubmit = async (event) => {
 
     try {
         if (productId) {
-            // Editando produto
             const productRef = doc(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/products`, productId);
             await updateDoc(productRef, productData);
             console.log("Produto atualizado com sucesso!");
             showModal('Sucesso!', `O produto "${name}" foi atualizado com sucesso.`, () => {});
         } else {
-            // Adicionando novo produto
             await addDoc(collection(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/products`), productData);
             console.log("Produto adicionado com sucesso!");
             showModal('Sucesso!', `O produto "${name}" foi adicionado ao estoque.`, () => {});
@@ -553,8 +523,6 @@ const cancelEditProduct = () => {
     lucide.createIcons();
 };
 
-
-// --- Renderização da View de Clientes ---
 const renderClientesView = () => {
     const mainContent = document.getElementById('main-content');
     mainContent.innerHTML = `
@@ -562,7 +530,6 @@ const renderClientesView = () => {
             <h2 class="text-3xl font-chakra font-bold mb-6 text-orange-400 flex items-center">
                 <i data-lucide="users" class="mr-3 text-orange-600"></i> Gerenciar Clientes
             </h2>
-
             <form id="customer-form" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 p-4 bg-gray-800 rounded-lg border-2 border-gray-700">
                 <input type="hidden" id="customer-id">
                 <div class="col-span-1 md:col-span-1">
@@ -582,39 +549,26 @@ const renderClientesView = () => {
                     </button>
                 </div>
             </form>
-
             <div id="customer-error-message" class="text-red-500 text-center mb-4 hidden"></div>
-
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-700 rounded-lg overflow-hidden border border-gray-700">
                     <thead class="bg-gray-800">
                         <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                Nome
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                Telefone
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                Dívida Total
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                Ações
-                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Nome</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Telefone</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Dívida Total</th>
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Ações</th>
                         </tr>
                     </thead>
-                    <tbody id="customers-table-body" class="bg-gray-900 divide-y divide-gray-700">
-                        </tbody>
+                    <tbody id="customers-table-body" class="bg-gray-900 divide-y divide-gray-700"></tbody>
                 </table>
                 <p id="no-customers-message" class="px-6 py-4 text-center text-sm text-gray-500 hidden">Nenhum cliente cadastrado.</p>
             </div>
         </div>
     `;
     lucide.createIcons();
-
     document.getElementById('customer-form').addEventListener('submit', handleCustomerSubmit);
     document.getElementById('customer-cancel-edit-btn').addEventListener('click', cancelEditCustomer);
-
     loadCustomers();
 };
 
@@ -646,7 +600,6 @@ const displayCustomers = (customers) => {
 
     if (customers.length === 0) {
         noCustomersMessage.classList.remove('hidden');
-        return;
     } else {
         noCustomersMessage.classList.add('hidden');
     }
@@ -722,8 +675,6 @@ const cancelEditCustomer = () => {
     lucide.createIcons();
 };
 
-
-// --- Renderização da View de Vendas ---
 const renderVendasView = () => {
     const mainContent = document.getElementById('main-content');
     mainContent.innerHTML = `
@@ -731,12 +682,10 @@ const renderVendasView = () => {
             <h2 class="text-3xl font-chakra font-bold mb-6 text-orange-400 flex items-center">
                 <i data-lucide="shopping-cart" class="mr-3 text-orange-600"></i> Realizar Venda
             </h2>
-
             <div id="sale-error-message" class="bg-red-900/50 border border-red-500 text-red-300 px-4 py-3 rounded-md relative mb-4 hidden" role="alert">
                 <strong class="font-bold">Erro!</strong>
                 <span id="sale-error-text" class="block sm:inline ml-2"></span>
             </div>
-
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="lg:col-span-2">
                     <div class="mb-4">
@@ -751,25 +700,20 @@ const renderVendasView = () => {
                     <h3 class="text-2xl font-chakra font-semibold mb-4 text-orange-400 flex items-center">
                         <i data-lucide="package" class="mr-2 text-orange-600" style="width: 20px; height: 20px;"></i> Produtos
                     </h3>
-                    <div id="available-products-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-96 overflow-y-auto pr-2 custom-scrollbar">
-                        </div>
+                    <div id="available-products-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-96 overflow-y-auto pr-2 custom-scrollbar"></div>
                     <p id="no-available-products-message" class="col-span-full text-center text-gray-500 py-8 hidden">Nenhum produto disponível em estoque.</p>
                 </div>
-
                 <div class="lg:col-span-1 bg-gray-800 p-6 rounded-lg border border-gray-700">
                     <h3 class="text-2xl font-chakra font-semibold mb-4 text-orange-400 flex items-center">
                         <i data-lucide="shopping-cart" class="mr-2 text-orange-600" style="width: 20px; height: 20px;"></i> Carrinho
                     </h3>
-                    <div id="cart-items" class="space-y-3 mb-6 max-h-60 overflow-y-auto custom-scrollbar pr-2">
-                        </div>
+                    <div id="cart-items" class="space-y-3 mb-6 max-h-60 overflow-y-auto custom-scrollbar pr-2"></div>
                     <p id="empty-cart-message" class="text-gray-500 text-center py-4 hidden">Carrinho vazio.</p>
-
                     <div class="border-t border-gray-700 pt-4 mt-4">
                         <p class="text-xl font-bold text-gray-300 flex justify-between items-center">
                             Total: <span id="cart-total" class="text-orange-400">R$ 0,00</span>
                         </p>
                     </div>
-
                     <div class="mt-6 space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-400 mb-2">Tipo de Pagamento</label>
@@ -788,12 +732,11 @@ const renderVendasView = () => {
                                 </label>
                             </div>
                         </div>
-
                         <div id="customer-select-container" class="hidden">
                             <label for="sale-customer-select" class="block text-sm font-medium text-gray-400 mb-2">Selecionar Cliente</label>
                             <select id="sale-customer-select" class="block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2" required>
                                 <option value="">Selecione um cliente</option>
-                                </select>
+                            </select>
                         </div>
                          <div id="card-type-container" class="hidden">
                             <label class="block text-sm font-medium text-gray-400 mb-2">Tipo de Cartão</label>
@@ -808,8 +751,6 @@ const renderVendasView = () => {
                                 </label>
                             </div>
                         </div>
-
-
                         <button id="process-sale-btn" onclick="window.processSale()" class="w-full px-4 py-3 bg-orange-600 text-white font-bold rounded-md hover:bg-orange-700 transition-colors flex items-center justify-center text-lg shadow-orange" disabled>
                             <i data-lucide="dollar-sign" class="mr-2" style="width: 20px; height: 20px;"></i> Processar Venda
                         </button>
@@ -819,21 +760,14 @@ const renderVendasView = () => {
         </div>
     `;
     lucide.createIcons();
-
-    // Carrega produtos e clientes para a tela de vendas
     loadProductsForSale();
     loadCustomersForSale();
-
-    // Event listener para seleção de cliente
     document.getElementById('sale-customer-select').addEventListener('change', updateProcessSaleButtonState);
     document.querySelectorAll('input[name="paymentType"]').forEach(radio => {
         radio.addEventListener('change', window.updatePaymentType);
     });
-
-    // Event listener para o campo de código de barras
     document.getElementById('barcode-scanner').addEventListener('change', handleBarcodeScan);
-
-    updatePaymentType(currentPaymentType); // Inicializa a UI
+    updatePaymentType(currentPaymentType);
 };
 
 const handleBarcodeScan = (event) => {
@@ -845,11 +779,11 @@ const handleBarcodeScan = (event) => {
         } else {
             showModal('Produto não encontrado', `Nenhum produto com o código de barras "${barcode}" foi encontrado.`, () => {});
         }
-        event.target.value = ''; // Limpa o campo após o escaneamento
+        event.target.value = '';
     }
 };
 
-window.addToCart = (productId) => { // Tornada global
+window.addToCart = (productId) => {
     document.getElementById('sale-error-message').classList.add('hidden');
     const product = currentProducts.find(p => p.id === productId);
     if (!product) return;
@@ -857,7 +791,6 @@ window.addToCart = (productId) => { // Tornada global
     const existingItemIndex = saleCart.findIndex(item => item.id === productId);
 
     if (existingItemIndex > -1) {
-        // Produto já no carrinho
         const itemInCart = saleCart[existingItemIndex];
         if (itemInCart.quantityInCart >= product.quantity) {
             document.getElementById('sale-error-text').textContent = `Não há estoque suficiente para ${product.name}.`;
@@ -866,7 +799,6 @@ window.addToCart = (productId) => { // Tornada global
         }
         saleCart[existingItemIndex].quantityInCart++;
     } else {
-        // Novo produto no carrinho
         if (product.quantity <= 0) {
             document.getElementById('sale-error-text').textContent = `O produto ${product.name} está fora de estoque.`;
             document.getElementById('sale-error-message').classList.remove('hidden');
@@ -878,7 +810,7 @@ window.addToCart = (productId) => { // Tornada global
     window.updateProcessSaleButtonState();
 };
 
-window.removeFromCart = (productId) => { // Tornada global
+window.removeFromCart = (productId) => {
     document.getElementById('sale-error-message').classList.add('hidden');
     const existingItemIndex = saleCart.findIndex(item => item.id === productId);
 
@@ -886,7 +818,7 @@ window.removeFromCart = (productId) => { // Tornada global
         if (saleCart[existingItemIndex].quantityInCart > 1) {
             saleCart[existingItemIndex].quantityInCart--;
         } else {
-            saleCart.splice(existingItemIndex, 1); // Remove o item se a quantidade for 1
+            saleCart.splice(existingItemIndex, 1);
         }
     }
     updateCartDisplay();
@@ -929,38 +861,25 @@ const updateCartDisplay = () => {
     lucide.createIcons();
 };
 
-window.updatePaymentType = (eventOrType) => { // Tornada global
-    let type;
-    if (typeof eventOrType === 'string') {
-        type = eventOrType;
-    } else {
-        type = eventOrType.target.value;
-    }
+window.updatePaymentType = (eventOrType) => {
+    let type = typeof eventOrType === 'string' ? eventOrType : eventOrType.target.value;
     currentPaymentType = type;
     const customerSelectContainer = document.getElementById('customer-select-container');
     const cardTypeContainer = document.getElementById('card-type-container');
 
-    if (type === 'credit') {
-        customerSelectContainer.classList.remove('hidden');
-        cardTypeContainer.classList.add('hidden');
-    } else if (type === 'card') {
-        cardTypeContainer.classList.remove('hidden');
-        customerSelectContainer.classList.add('hidden');
-        selectedCustomerForSale = '';
-        document.getElementById('sale-customer-select').value = '';
-    } else {
-        customerSelectContainer.classList.add('hidden');
-        cardTypeContainer.classList.add('hidden');
+    customerSelectContainer.classList.toggle('hidden', type !== 'credit');
+    cardTypeContainer.classList.toggle('hidden', type !== 'card');
+
+    if (type !== 'credit') {
         selectedCustomerForSale = '';
         document.getElementById('sale-customer-select').value = '';
     }
     window.updateProcessSaleButtonState();
 };
 
-window.updateProcessSaleButtonState = () => { // Tornada global
+window.updateProcessSaleButtonState = () => {
     const processSaleBtn = document.getElementById('process-sale-btn');
     const customerSelect = document.getElementById('sale-customer-select');
-
     let isButtonEnabled = saleCart.length > 0;
 
     if (currentPaymentType === 'credit') {
@@ -973,7 +892,7 @@ window.updateProcessSaleButtonState = () => { // Tornada global
     processSaleBtn.disabled = !isButtonEnabled;
 };
 
-window.processSale = async () => { // Tornada global
+window.processSale = async () => {
     document.getElementById('sale-error-message').classList.add('hidden');
 
     if (saleCart.length === 0) {
@@ -989,9 +908,8 @@ window.processSale = async () => { // Tornada global
     }
 
     try {
-        // 1. Registrar a transação de venda
         const totalAmount = saleCart.reduce((acc, item) => acc + (item.sellPrice * item.quantityInCart), 0);
-        const transactionRef = await addDoc(collection(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/transactions`), {
+        await addDoc(collection(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/transactions`), {
             type: 'sale',
             date: new Date().toISOString(),
             items: saleCart.map(item => ({
@@ -1007,42 +925,33 @@ window.processSale = async () => { // Tornada global
             customerId: currentPaymentType === 'credit' ? selectedCustomerForSale : null,
             status: currentPaymentType === 'credit' ? 'pending' : 'paid',
         });
-        console.log("Transação registrada:", transactionRef.id);
 
-        // 2. Atualizar o estoque dos produtos
         const batchUpdates = saleCart.map(async (item) => {
             const productRef = doc(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/products`, item.id);
             const currentProduct = currentProducts.find(p => p.id === item.id);
             if (currentProduct) {
                 const newQuantity = currentProduct.quantity - item.quantityInCart;
                 if (newQuantity < 0) {
-                    throw new Error(`Estoque insuficiente para ${item.name}`); // Validação de último minuto
+                    throw new Error(`Estoque insuficiente para ${item.name}`);
                 }
                 await updateDoc(productRef, { quantity: newQuantity });
             }
         });
         await Promise.all(batchUpdates);
-        console.log("Estoque atualizado com sucesso!");
 
-        // 3. Se for venda a prazo, atualizar a dívida do cliente
         if (currentPaymentType === 'credit' && selectedCustomerForSale) {
             const customerRef = doc(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/customers`, selectedCustomerForSale);
             const currentCustomer = currentCustomers.find(c => c.id === selectedCustomerForSale);
             if (currentCustomer) {
                 const newTotalDue = (currentCustomer.totalDue || 0) + totalAmount;
                 await updateDoc(customerRef, { totalDue: newTotalDue });
-                console.log(`Dívida do cliente ${currentCustomer.name} atualizada para ${formatCurrency(newTotalDue)}`);
             }
         }
 
-        // Limpar carrinho e resetar seleção
         saleCart = [];
         selectedCustomerForSale = '';
         currentPaymentType = 'cash';
         document.querySelector('input[name="paymentType"][value="cash"]').checked = true;
-        document.getElementById('customer-select-container').classList.add('hidden');
-        document.getElementById('card-type-container').classList.add('hidden');
-        document.getElementById('sale-customer-select').value = '';
         updateCartDisplay();
         window.updateProcessSaleButtonState();
         showModal('Venda Realizada!', 'A venda foi processada com sucesso!', () => {});
@@ -1054,7 +963,6 @@ window.processSale = async () => { // Tornada global
     }
 };
 
-// --- Renderização da View de Dashboard ---
 const renderDashboardView = async () => {
     const mainContent = document.getElementById('main-content');
     mainContent.innerHTML = `
@@ -1062,7 +970,6 @@ const renderDashboardView = async () => {
             <h2 class="text-3xl font-chakra font-bold mb-6 text-orange-400 flex items-center">
                 <i data-lucide="bar-chart-2" class="mr-3 text-orange-600"></i> Dashboard de Vendas
             </h2>
-            
             <div class="mb-6 flex flex-wrap items-end gap-4">
                 <div>
                     <label for="start-date" class="block text-sm font-medium text-gray-400">Data Inicial</label>
@@ -1076,7 +983,6 @@ const renderDashboardView = async () => {
                     <i data-lucide="filter" class="mr-2"></i> Filtrar
                 </button>
             </div>
-
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div class="bg-gray-800 p-6 rounded-lg border border-orange-600/50 flex items-center">
                     <i data-lucide="dollar-sign" class="text-green-500 mr-4" style="width: 32px; height: 32px;"></i>
@@ -1093,7 +999,6 @@ const renderDashboardView = async () => {
                     </div>
                 </div>
             </div>
-
             <h3 class="text-2xl font-chakra font-semibold mb-4 text-orange-400 flex items-center">
                 <i data-lucide="receipt" class="mr-2 text-orange-600" style="width: 20px; height: 20px;"></i> Últimas Transações
             </h3>
@@ -1101,35 +1006,21 @@ const renderDashboardView = async () => {
                 <table class="min-w-full divide-y divide-gray-700 rounded-lg overflow-hidden border border-gray-700">
                     <thead class="bg-gray-800">
                         <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                Tipo
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                Descrição
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                Valor
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                Data
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                Status
-                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Tipo</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Descrição</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Valor</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Data</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
                         </tr>
                     </thead>
-                    <tbody id="transactions-table-body" class="bg-gray-900 divide-y divide-gray-700">
-                        </tbody>
+                    <tbody id="transactions-table-body" class="bg-gray-900 divide-y divide-gray-700"></tbody>
                 </table>
                 <p id="no-transactions-message" class="px-6 py-4 text-center text-sm text-gray-500 hidden">Nenhuma transação registrada.</p>
             </div>
         </div>
     `;
     lucide.createIcons();
-
-    const filterBtn = document.getElementById('filter-dashboard-btn');
-    filterBtn.addEventListener('click', () => loadDashboardData());
-
+    document.getElementById('filter-dashboard-btn').addEventListener('click', () => loadDashboardData());
     loadDashboardData();
 };
 
@@ -1145,7 +1036,6 @@ const loadDashboardData = async () => {
         const startDate = document.getElementById('start-date').value;
         const endDate = document.getElementById('end-date').value;
 
-        // Carregar Dívida Total de Clientes
         const customersCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/customers`);
         const customersSnapshot = await getDocs(customersCollectionRef);
         let totalDebtAmount = 0;
@@ -1154,7 +1044,6 @@ const loadDashboardData = async () => {
         });
         document.getElementById('total-debt').textContent = formatCurrency(totalDebtAmount);
 
-        // Carregar Total de Vendas e Últimas Transações com filtro
         const transactionsCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/transactions`);
         let transactionsQuery = query(transactionsCollectionRef);
 
@@ -1178,7 +1067,6 @@ const loadDashboardData = async () => {
 
         document.getElementById('total-sales').textContent = formatCurrency(totalSalesAmount);
 
-        // Ordenar por data (mais recente primeiro)
         transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         const tableBody = document.getElementById('transactions-table-body');
@@ -1189,7 +1077,7 @@ const loadDashboardData = async () => {
             noTransactionsMessage.classList.remove('hidden');
         } else {
             noTransactionsMessage.classList.add('hidden');
-            transactions.slice(0, 10).forEach(transaction => { // Exibe as últimas 10 transações
+            transactions.slice(0, 10).forEach(transaction => {
                 const row = tableBody.insertRow();
                 const transactionDate = new Date(transaction.date).toLocaleDateString('pt-BR', {
                     year: 'numeric', month: 'numeric', day: 'numeric',
@@ -1212,7 +1100,6 @@ const loadDashboardData = async () => {
                 `;
             });
         }
-
     } catch (error) {
         console.error("Erro ao carregar dashboard:", error);
         document.getElementById('total-sales').textContent = "Erro";
@@ -1230,7 +1117,7 @@ const loadProductsForSale = () => {
     const productsCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/products`);
     onSnapshot(productsCollectionRef, (snapshot) => {
         const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        currentProducts = productsData; // Atualiza a lista global de produtos
+        currentProducts = productsData;
         displayAvailableProducts(productsData);
     }, (err) => {
         console.error("Erro ao carregar produtos para vendas:", err);
@@ -1243,12 +1130,10 @@ const displayAvailableProducts = (products) => {
     const list = document.getElementById('available-products-list');
     list.innerHTML = '';
     const noProductsMessage = document.getElementById('no-available-products-message');
-
     const availableProducts = products.filter(p => p.quantity > 0);
 
     if (availableProducts.length === 0) {
         noProductsMessage.classList.remove('hidden');
-        return;
     } else {
         noProductsMessage.classList.add('hidden');
     }
@@ -1280,9 +1165,9 @@ const loadCustomersForSale = () => {
     const customersCollectionRef = collection(window.db, `artifacts/${window.appId}/users/${window.currentUser.uid}/customers`);
     onSnapshot(customersCollectionRef, (snapshot) => {
         const customersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        currentCustomers = customersData; // Atualiza a lista global de clientes
+        currentCustomers = customersData;
         const select = document.getElementById('sale-customer-select');
-        select.innerHTML = '<option value="">Selecione um cliente</option>'; // Limpa e adiciona a opção padrão
+        select.innerHTML = '<option value="">Selecione um cliente</option>';
         customersData.forEach(customer => {
             const option = document.createElement('option');
             option.value = customer.id;
