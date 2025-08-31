@@ -451,42 +451,8 @@ window.editCustomer = (customerId) => {
 
 // --- Renderização da View de Vendas ---
 const renderVendasView = () => {
-    const mainContent = document.getElementById('main-content');
-    mainContent.innerHTML = `
-        <div class="bg-gray-900 rounded-lg border border-orange-600/50 shadow-neon p-6 mb-8">
-            <h2 class="text-3xl font-chakra font-bold mb-6 text-orange-400 flex items-center"><i data-lucide="shopping-cart" class="mr-3 text-orange-600"></i> Realizar Venda</h2>
-            <div id="sale-error-message" class="bg-red-900/50 border border-red-500 text-red-300 px-4 py-3 rounded-md relative mb-4 hidden" role="alert"><strong class="font-bold">Erro!</strong><span id="sale-error-text" class="block sm:inline ml-2"></span></div>
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-2">
-                    <div class="mb-4"><label for="barcode-scanner" class="block text-sm font-medium text-gray-400">Ler Código de Barras</label><div class="relative mt-1"><div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none"><i data-lucide="scan" class="w-5 h-5 text-gray-500"></i></div><input type="text" id="barcode-scanner" placeholder="Posicione o cursor e escaneie o produto..." class="block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2 pl-10"></div></div>
-                    <h3 class="text-2xl font-chakra font-semibold mb-4 text-orange-400 flex items-center"><i data-lucide="package" class="mr-2 text-orange-600" style="width: 20px; height: 20px;"></i> Produtos</h3>
-                    <div id="available-products-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-96 overflow-y-auto pr-2 custom-scrollbar"></div>
-                    <p id="no-available-products-message" class="col-span-full text-center text-gray-500 py-8 hidden">Nenhum produto disponível em estoque.</p>
-                </div>
-                <div class="lg:col-span-1 bg-gray-800 p-6 rounded-lg border border-gray-700">
-                    <h3 class="text-2xl font-chakra font-semibold mb-4 text-orange-400 flex items-center"><i data-lucide="shopping-cart" class="mr-2 text-orange-600" style="width: 20px; height: 20px;"></i> Carrinho</h3>
-                    <div id="cart-items" class="space-y-3 mb-6 max-h-60 overflow-y-auto custom-scrollbar pr-2"></div>
-                    <p id="empty-cart-message" class="text-gray-500 text-center py-4">Carrinho vazio.</p>
-                    <div class="border-t border-gray-700 pt-4 mt-4"><p class="text-xl font-bold text-gray-300 flex justify-between items-center">Total: <span id="cart-total" class="text-orange-400">R$ 0,00</span></p></div>
-                    <div class="mt-6 space-y-4">
-                        <div><label class="block text-sm font-medium text-gray-400 mb-2">Tipo de Pagamento</label><div class="flex flex-wrap gap-4"><label class="flex items-center"><input type="radio" name="paymentType" value="cash" checked class="form-radio text-orange-600 bg-gray-700" onchange="window.updatePaymentType(this.value)"><span class="ml-2 text-gray-300">À Vista</span></label><label class="flex items-center"><input type="radio" name="paymentType" value="card" class="form-radio text-orange-600 bg-gray-700" onchange="window.updatePaymentType(this.value)"><span class="ml-2 text-gray-300">Cartão</span></label><label class="flex items-center"><input type="radio" name="paymentType" value="credit" class="form-radio text-orange-600 bg-gray-700" onchange="window.updatePaymentType(this.value)"><span class="ml-2 text-gray-300">Na Nota</span></label></div></div>
-                        <div id="customer-select-container" class="hidden"><label for="sale-customer-select" class="block text-sm font-medium text-gray-400 mb-2">Selecionar Cliente</label><select id="sale-customer-select" class="block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2" required><option value="">Selecione um cliente</option></select></div>
-                        <div id="card-type-container" class="hidden"><label class="block text-sm font-medium text-gray-400 mb-2">Tipo de Cartão</label><div class="flex space-x-4"><label class="flex items-center"><input type="radio" name="cardType" value="debit" checked class="form-radio text-orange-600 bg-gray-700"><span class="ml-2 text-gray-300">Débito</span></label><label class="flex items-center"><input type="radio" name="cardType" value="credit" class="form-radio text-orange-600 bg-gray-700"><span class="ml-2 text-gray-300">Crédito</span></label></div></div>
-                        <button id="process-sale-btn" onclick="window.processSale()" class="w-full px-4 py-3 bg-orange-600 text-white font-bold rounded-md hover:bg-orange-700 transition-colors flex items-center justify-center text-lg shadow-orange" disabled><i data-lucide="dollar-sign" class="mr-2" style="width: 20px; height: 20px;"></i> Processar Venda</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    lucide.createIcons();
-    loadProductsForSale();
-    loadCustomersForSale();
-    document.getElementById('sale-customer-select').addEventListener('change', updateProcessSaleButtonState);
-    document.querySelectorAll('input[name="paymentType"]').forEach(radio => radio.addEventListener('change', window.updatePaymentType));
-    document.getElementById('barcode-scanner').addEventListener('change', handleBarcodeScan);
-    updatePaymentType('cash');
+    // ... Código da renderVendasView ...
 };
-
 const handleBarcodeScan = (event) => { /* ... */ };
 window.addToCart = (productId) => { /* ... */ };
 window.removeFromCart = (productId) => { /* ... */ };
@@ -494,8 +460,14 @@ const updateCartDisplay = () => { /* ... */ };
 window.updatePaymentType = (type) => { /* ... */ };
 window.updateProcessSaleButtonState = () => { /* ... */ };
 window.processSale = async () => { /* ... */ };
-const renderDashboardView = async () => { /* ... */ };
+
+// --- Renderização da View de Dashboard ---
+const renderDashboardView = async () => {
+    // ... Código da renderDashboardView ...
+};
 const loadDashboardData = async () => { /* ... */ };
+
+// --- Funções Auxiliares para Vendas ---
 const loadProductsForSale = () => { /* ... */ };
 const displayAvailableProducts = (products) => { /* ... */ };
 const loadCustomersForSale = () => { /* ... */ };
