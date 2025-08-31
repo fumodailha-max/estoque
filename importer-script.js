@@ -64,13 +64,15 @@ document.getElementById('import-btn').addEventListener('click', async () => {
                     quantity: parseInt(cells[7]?.innerText.trim() || '0'),
                 };
                 
-                const productRef = doc(collection(db, `users/${currentUser.uid}/products`));
+                // --- CORREÇÃO ESTÁ AQUI ---
+                // Agora salva na coleção global "products"
+                const productRef = doc(collection(db, "products"));
                 batch.set(productRef, productData);
                 importedCount++;
             });
 
             await batch.commit();
-            statusDiv.innerHTML = `<p class="text-green-500">Sucesso! ${importedCount} produtos foram importados.</p>`;
+            statusDiv.innerHTML = `<p class="text-green-500">Sucesso! ${importedCount} produtos foram importados para o estoque compartilhado.</p>`;
         } catch (error) {
             console.error("Erro ao importar:", error);
             statusDiv.innerHTML = `<p class="text-red-500">Erro: ${error.message}</p>`;
