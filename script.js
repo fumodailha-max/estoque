@@ -91,7 +91,11 @@ const handleLoginForm = async (event) => {
     }
 };
 
-window.handleSignOut = () => signOut(window.auth).catch(console.error);
+window.handleSignOut = () => {
+    signOut(window.auth).catch((error) => {
+        console.error("Erro ao fazer logout:", error);
+    });
+};
 
 document.addEventListener('DOMContentLoaded', () => {
     initFirebaseAndAuth();
@@ -100,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 });
 
-const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 
 const showModal = (title, message, onConfirm, onCancel = null, confirmText = 'Confirmar', cancelText = 'Cancelar', contentHtml = '') => {
     const modal = document.getElementById('custom-modal');
@@ -177,7 +181,8 @@ const deleteCustomer = async (customerId) => {
 window.confirmDeleteCustomer = (customerId, customerName) => showModal('Confirmar Exclusão', `Tem certeza que deseja excluir o cliente "${customerName}"?`, () => deleteCustomer(customerId), () => {}, 'Excluir', 'Cancelar');
 
 const handlePay = async () => {
-    const paymentAmount = parseFloat(document.getElementById('payment-amount').value);
+    const paymentAmountInput = document.getElementById('payment-amount');
+    const paymentAmount = parseFloat(paymentAmountInput.value);
     const customer = currentCustomers.find(c => c.id === customerToPayId);
     if (isNaN(paymentAmount) || paymentAmount <= 0 || paymentAmount > customer.totalDue) {
         document.getElementById('payment-error-message').textContent = "Valor de pagamento inválido.";
@@ -606,8 +611,8 @@ window.processSale = async () => {
     const saleErrorText = document.getElementById('sale-error-text');
     saleError.classList.add('hidden');
 
-    if (saleCart.length === 0) { /* ... */ return; }
-    if (currentPaymentType === 'credit' && !selectedCustomerForSale) { /* ... */ return; }
+    if (saleCart.length === 0) { return; }
+    if (currentPaymentType === 'credit' && !selectedCustomerForSale) { return; }
     
     try {
         const totalAmount = saleCart.reduce((acc, item) => acc + (item.sellPrice * item.quantityInCart), 0);
