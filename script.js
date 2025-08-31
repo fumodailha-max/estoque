@@ -1,7 +1,7 @@
 // Importa os módulos do Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, onSnapshot, query, where, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, onSnapshot, query, where, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // Variáveis globais para Firebase e estado do usuário
 window.firebaseApp = null;
@@ -458,9 +458,24 @@ const renderVendasView = () => {
             <div id="sale-error-message" class="bg-red-900/50 border border-red-500 text-red-300 px-4 py-3 rounded-md relative mb-4 hidden" role="alert"><strong class="font-bold">Erro!</strong><span id="sale-error-text" class="block sm:inline ml-2"></span></div>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="lg:col-span-2">
-                    <div class="mb-4"><label for="barcode-scanner" class="block text-sm font-medium text-gray-400">Ler Código de Barras</label><div class="relative mt-1"><div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none"><i data-lucide="scan" class="w-5 h-5 text-gray-500"></i></div><input type="text" id="barcode-scanner" placeholder="Posicione o cursor e escaneie o produto..." class="block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2 pl-10"></div></div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label for="barcode-scanner" class="block text-sm font-medium text-gray-400">Ler Código de Barras</label>
+                            <div class="relative mt-1">
+                                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none"><i data-lucide="scan" class="w-5 h-5 text-gray-500"></i></div>
+                                <input type="text" id="barcode-scanner" placeholder="Escaneie o produto..." class="block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2 pl-10">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="vendas-product-search" class="block text-sm font-medium text-gray-400">Pesquisar por Nome</label>
+                            <div class="relative mt-1">
+                                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none"><i data-lucide="search" class="w-5 h-5 text-gray-500"></i></div>
+                                <input type="text" id="vendas-product-search" placeholder="Digite o nome do produto..." class="block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2 pl-10">
+                            </div>
+                        </div>
+                    </div>
                     <h3 class="text-2xl font-chakra font-semibold mb-4 text-orange-400 flex items-center"><i data-lucide="package" class="mr-2 text-orange-600" style="width: 20px; height: 20px;"></i> Produtos</h3>
-                    <div id="available-products-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-96 overflow-y-auto pr-2 custom-scrollbar"></div>
+                    <div id="available-products-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-80 overflow-y-auto pr-2 custom-scrollbar"></div>
                     <p id="no-available-products-message" class="col-span-full text-center text-gray-500 py-8 hidden">Nenhum produto disponível em estoque.</p>
                 </div>
                 <div class="lg:col-span-1 bg-gray-800 p-6 rounded-lg border border-gray-700">
@@ -482,8 +497,13 @@ const renderVendasView = () => {
     loadProductsForSale();
     loadCustomersForSale();
     document.getElementById('sale-customer-select').addEventListener('change', updateProcessSaleButtonState);
-    document.querySelectorAll('input[name="paymentType"]').forEach(radio => radio.addEventListener('change', window.updatePaymentType));
+    document.querySelectorAll('input[name="paymentType"]').forEach(radio => radio.addEventListener('change', (e) => window.updatePaymentType(e.target.value)));
     document.getElementById('barcode-scanner').addEventListener('change', handleBarcodeScan);
+    document.getElementById('vendas-product-search').addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        const filteredProducts = currentProducts.filter(p => p.name.toLowerCase().includes(searchTerm));
+        displayAvailableProducts(filteredProducts);
+    });
     updatePaymentType('cash');
 };
 
@@ -557,7 +577,7 @@ const updateCartDisplay = () => {
 };
 
 window.updatePaymentType = (type) => {
-    currentPaymentType = typeof type === 'string' ? type : type.value;
+    currentPaymentType = type;
     document.getElementById('customer-select-container').classList.toggle('hidden', currentPaymentType !== 'credit');
     document.getElementById('card-type-container').classList.toggle('hidden', currentPaymentType !== 'card');
     if (currentPaymentType !== 'credit') {
@@ -584,24 +604,15 @@ window.processSale = async () => {
     const saleErrorText = document.getElementById('sale-error-text');
     saleError.classList.add('hidden');
 
-    if (saleCart.length === 0) {
-        saleErrorText.textContent = "O carrinho está vazio.";
-        saleError.classList.remove('hidden');
-        return;
-    }
-    if (currentPaymentType === 'credit' && !selectedCustomerForSale) {
-        saleErrorText.textContent = "Por favor, selecione um cliente para vendas a prazo.";
-        saleError.classList.remove('hidden');
-        return;
-    }
+    if (saleCart.length === 0) { /* ... */ return; }
+    if (currentPaymentType === 'credit' && !selectedCustomerForSale) { /* ... */ return; }
+    
     try {
         const totalAmount = saleCart.reduce((acc, item) => acc + (item.sellPrice * item.quantityInCart), 0);
         const transactionData = {
-            type: 'sale',
-            date: new Date().toISOString(),
-            items: saleCart,
-            totalAmount,
-            paymentType: currentPaymentType,
+            type: 'sale', date: new Date().toISOString(),
+            items: saleCart.map(item => ({ productId: item.id, productName: item.name, quantity: item.quantityInCart, pricePerUnit: item.sellPrice, totalPrice: item.sellPrice * item.quantityInCart })),
+            totalAmount, paymentType: currentPaymentType,
             cardType: currentPaymentType === 'card' ? document.querySelector('input[name="cardType"]:checked').value : null,
             customerId: currentPaymentType === 'credit' ? selectedCustomerForSale : null,
             status: currentPaymentType === 'credit' ? 'pending' : 'paid',
@@ -612,6 +623,7 @@ window.processSale = async () => {
         saleCart.forEach(item => {
             const productRef = doc(window.db, "products", item.id);
             const newQuantity = item.quantity - item.quantityInCart;
+            if (newQuantity < 0) throw new Error(`Estoque insuficiente para ${item.name}`);
             batch.update(productRef, { quantity: newQuantity });
         });
         await batch.commit();
