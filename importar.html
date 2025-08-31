@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fumo da Ilha - Importar Produtos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body class="min-h-screen bg-black flex flex-col justify-center items-center text-gray-200 font-mono antialiased">
+    <div class="bg-gray-900 p-8 rounded-lg border-2 border-orange-600/50 shadow-neon max-w-2xl w-full">
+        <div class="flex flex-col items-center mb-6">
+            <img src="logo.jpg" alt="Logo Fumo da Ilha" class="h-24 w-24 mb-4 border-2 border-orange-600 rounded-full">
+            <h1 class="text-3xl font-chakra font-bold text-orange-600 drop-shadow-md">IMPORTAR PRODUTOS</h1>
+            <p class="text-sm text-gray-400 mt-2">Faça o upload do arquivo HTML do seu sistema antigo.</p>
+        </div>
+
+        <div id="auth-check" class="text-center">
+            <p class="text-yellow-400">Aguardando autenticação do Firebase...</p>
+        </div>
+        
+        <div id="importer-ui" class="space-y-4 hidden">
+            <div>
+                <label for="html-file" class="block text-sm font-medium text-gray-400">Selecione o arquivo HTML:</label>
+                <input type="file" id="html-file" accept=".html" class="mt-1 block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-700"/>
+            </div>
+            
+            <button id="import-btn" class="w-full px-4 py-2 bg-green-600 text-white font-medium rounded-md hover:bg-green-700 transition-colors shadow-orange">
+                Importar Produtos
+            </button>
+
+            <div id="import-status" class="mt-4 text-center"></div>
+        </div>
+
+        <div class="mt-6 text-center">
+            <a href="index.html" class="text-orange-400 hover:text-orange-500">&larr; Voltar para o sistema</a>
+        </div>
+    </div>
+    
+    <script type="module" src="importer-script.js"></script>
+</body>
+</html>
