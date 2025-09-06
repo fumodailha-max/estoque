@@ -196,6 +196,11 @@ const handlePay = async () => {
         await addDoc(collection(window.db, "transactions"), {
             type: 'payment', customerId: customerToPayId, customerName: customer.name, amount: paymentAmount, date: new Date().toISOString(),
         });
+
+        // Força a atualização da dívida na interface
+        customer.totalDue = newTotalDue;
+        displayCustomers(currentCustomers);
+        
         showModal('Sucesso!', 'Pagamento registrado com sucesso!', () => {});
         customerToPayId = null;
     } catch (err) {
