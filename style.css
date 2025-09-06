@@ -44,3 +44,51 @@
     border-radius: 4px;
     box-shadow: 0 0 5px #f97316;
 }
+
+/* --- ESTILOS PARA RESPONSIVIDADE (MOBILE) --- */
+@media (max-width: 767px) {
+    /* Esconde os links da navegação por padrão no mobile */
+    #nav-links {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    /* Ajusta o espaçamento dos botões do menu mobile */
+    #nav-links > button {
+        margin-top: 0.5rem; /* 8px */
+        margin-left: 0;
+    }
+
+    /* Formulários: faz os inputs ocuparem a largura toda e empilharem */
+    #product-form, #customer-form {
+        grid-template-columns: 1fr; /* Coluna única */
+    }
+
+    #product-form > div, #customer-form > div {
+        grid-column: 1 / -1; /* Ocupa a largura total */
+    }
+
+    #product-form .col-span-full, #customer-form .col-span-full {
+        justify-content: center;
+    }
+    
+    /* Tabelas: adiciona scroll horizontal para não quebrar a tela */
+    .overflow-x-auto {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Vendas: empilha os painéis */
+    #sale-view-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Dashboard: empilha os cards */
+    #dashboard-cards {
+        grid-template-columns: 1fr;
+    }
+
+    /* Ajuste de padding geral para telas menores */
+    #main-content {
+        padding: 1rem; /* 16px */
+    }
+}
