@@ -102,6 +102,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     if (loginForm) loginForm.addEventListener('submit', handleLoginForm);
     if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    // Lógica para o menu hambúrguer
+    const hamburgerBtn = document.getElementById('hamburger-btn');
+    const navLinks = document.getElementById('nav-links');
+
+    if(hamburgerBtn && navLinks){
+        hamburgerBtn.addEventListener('click', () => {
+            navLinks.classList.toggle('hidden');
+        });
+    }
 });
 
 const formatCurrency = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
@@ -119,8 +129,7 @@ const showModal = (title, message, onConfirm, onCancel = null, confirmText = 'Co
     
     confirmBtn.onclick = () => { 
         if (onConfirm) onConfirm();
-        // Apenas esconde o modal principal se não for uma mensagem de sucesso/erro que se fecha sozinha
-        if (onCancel !== null) {
+        if (onCancel !== null) { // Apenas fecha o modal se houver uma ação de cancelamento (evita fechar modais de sucesso/erro)
             hideModal();
         }
     };
@@ -145,6 +154,12 @@ window.loadPage = (pageName) => {
     const mainContent = document.getElementById('main-content');
     if (!mainContent) return;
     mainContent.innerHTML = 'Carregando...';
+
+    // Fecha o menu hambúrguer ao carregar uma nova página (importante para mobile)
+    const navLinks = document.getElementById('nav-links');
+    if (navLinks && !navLinks.classList.contains('md:flex')) {
+         navLinks.classList.add('hidden');
+    }
 
     if (pageName === 'dashboard' && window.currentUser.role !== 'admin') {
         mainContent.innerHTML = `<div class="bg-gray-800 rounded-lg p-8 text-center mt-12"><h2 class="text-3xl font-bold text-red-500 mb-4">Acesso Negado</h2><p class="text-gray-400">Você não tem permissão para acessar o Dashboard.</p></div>`;
@@ -488,7 +503,7 @@ const renderVendasView = () => {
         <div class="bg-gray-900 rounded-lg border border-orange-600/50 shadow-neon p-6 mb-8">
             <h2 class="text-3xl font-chakra font-bold mb-6 text-orange-400 flex items-center"><i data-lucide="shopping-cart" class="mr-3 text-orange-600"></i> Realizar Venda</h2>
             <div id="sale-error-message" class="bg-red-900/50 border border-red-500 text-red-300 px-4 py-3 rounded-md relative mb-4 hidden" role="alert"><strong class="font-bold">Erro!</strong><span id="sale-error-text" class="block sm:inline ml-2"></span></div>
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div id="sale-view-grid" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="lg:col-span-2">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                         <div>
@@ -684,11 +699,7 @@ window.processSale = async () => {
 
 const loadProductsForSale = () => {
     onSnapshot(collection(window.db, "products"), (snapshot) => {
-        // --- INÍCIO DA CORREÇÃO ---
-        // Só atualiza a lista de produtos se a view de Vendas estiver ativa
         if (!document.getElementById('available-products-list')) return;
-        // --- FIM DA CORREÇÃO ---
-
         currentProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         displayAvailableProducts(currentProducts);
     }, (err) => console.error("Erro ao carregar produtos para venda:", err));
@@ -718,12 +729,10 @@ const displayAvailableProducts = (products) => {
 const loadCustomersForSale = () => {
     onSnapshot(collection(window.db, "customers"), (snapshot) => {
         const select = document.getElementById('sale-customer-select');
-        // --- INÍCIO DA CORREÇÃO ---
-        // Só atualiza o select de clientes se a view de Vendas estiver ativa
         if (!select) return;
-        // --- FIM DA CORREÇÃO ---
-
         const customers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Mantém a lista de clientes atualizada para outras partes do sistema
         currentCustomers = customers; 
         
         select.innerHTML = '<option value="">Selecione um cliente</option>';
@@ -744,7 +753,7 @@ const renderDashboardView = async () => {
                 <div><label for="end-date" class="block text-sm font-medium text-gray-400">Data Final</label><input type="date" id="end-date" class="mt-1 block w-full rounded-md bg-gray-700 text-white border-gray-600 shadow-sm focus:border-orange-500 focus:ring-orange-500 p-2"></div>
                 <button id="filter-dashboard-btn" class="px-4 py-2 bg-orange-600 text-white font-medium rounded-md hover:bg-orange-700 transition-colors flex items-center justify-center shadow-orange"><i data-lucide="filter" class="mr-2"></i> Filtrar</button>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div id="dashboard-cards" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div class="bg-gray-800 p-6 rounded-lg border border-orange-600/50 flex items-center"><i data-lucide="dollar-sign" class="text-green-500 mr-4" style="width: 32px; height: 32px;"></i><div><p class="text-lg text-gray-400">Total de Vendas</p><p id="total-sales" class="text-3xl font-bold text-green-400">Carregando...</p></div></div>
                 <div class="bg-gray-800 p-6 rounded-lg border border-orange-600/50 flex items-center"><i data-lucide="alert-circle" class="text-red-500 mr-4" style="width: 32px; height: 32px;"></i><div><p class="text-lg text-gray-400">Dívida Total de Clientes</p><p id="total-debt" class="text-3xl font-bold text-red-400">Carregando...</p></div></div>
             </div>
