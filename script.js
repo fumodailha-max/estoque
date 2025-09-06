@@ -116,16 +116,12 @@ const showModal = (title, message, onConfirm, onCancel = null, confirmText = 'Co
     const confirmBtn = document.getElementById('modal-confirm-btn');
     const cancelBtn = document.getElementById('modal-cancel-btn');
     confirmBtn.textContent = confirmText;
-
-    // --- CORREÇÃO ESTÁ AQUI ---
-    // A função onConfirm (handlePay) deve ser chamada ANTES de hideModal.
+    
     confirmBtn.onclick = () => { 
-        if (onConfirm) {
-            onConfirm(); 
-        }
-        // Apenas esconde o modal principal se não for uma mensagem de sucesso/erro
-        if(onCancel !== null){
-             hideModal();
+        if (onConfirm) onConfirm();
+        // Apenas esconde o modal principal se não for uma mensagem de sucesso/erro que se fecha sozinha
+        if (onCancel !== null) {
+            hideModal();
         }
     };
     
@@ -136,7 +132,6 @@ const showModal = (title, message, onConfirm, onCancel = null, confirmText = 'Co
     }
     modal.classList.remove('hidden');
 };
-
 
 const hideModal = () => {
     const modal = document.getElementById('custom-modal');
@@ -174,10 +169,10 @@ window.loadPage = (pageName) => {
 const deleteProduct = async (productId) => {
     try {
         await deleteDoc(doc(window.db, "products", productId));
-        showModal('Sucesso!', 'Produto excluído com sucesso.', () => {});
+        showModal('Sucesso!', 'Produto excluído com sucesso.', () => hideModal());
     } catch (err) {
         console.error("Erro ao excluir produto:", err);
-        showModal('Erro!', 'Erro ao excluir produto. Tente novamente.', null, () => {});
+        showModal('Erro!', 'Erro ao excluir produto. Tente novamente.', () => hideModal());
     }
 };
 window.confirmDeleteProduct = (productId, productName) => showModal('Confirmar Exclusão', `Tem certeza que deseja excluir o produto "${productName}"?`, () => deleteProduct(productId), () => {}, 'Excluir', 'Cancelar');
@@ -185,10 +180,10 @@ window.confirmDeleteProduct = (productId, productName) => showModal('Confirmar E
 const deleteCustomer = async (customerId) => {
     try {
         await deleteDoc(doc(window.db, "customers", customerId));
-        showModal('Sucesso!', 'Cliente excluído com sucesso.', () => {});
+        showModal('Sucesso!', 'Cliente excluído com sucesso.', () => hideModal());
     } catch (err) {
         console.error("Erro ao excluir cliente:", err);
-        showModal('Erro!', 'Erro ao excluir cliente. Tente novamente.', null, () => {});
+        showModal('Erro!', 'Erro ao excluir cliente. Tente novamente.', () => hideModal());
     }
 };
 window.confirmDeleteCustomer = (customerId, customerName) => showModal('Confirmar Exclusão', `Tem certeza que deseja excluir o cliente "${customerName}"?`, () => deleteCustomer(customerId), () => {}, 'Excluir', 'Cancelar');
@@ -196,8 +191,7 @@ window.confirmDeleteCustomer = (customerId, customerName) => showModal('Confirma
 const handlePay = async () => {
     const paymentAmountInput = document.getElementById('payment-amount');
     const errorMessage = document.getElementById('payment-error-message');
-    
-    // Verifica se os elementos existem antes de usá-los
+
     if (!paymentAmountInput || !errorMessage) {
         console.error("Elementos do modal de pagamento não encontrados.");
         return;
@@ -224,14 +218,12 @@ const handlePay = async () => {
             date: new Date().toISOString(),
         });
 
-        // Esconde o modal de pagamento e mostra o de sucesso.
         hideModal();
-        showModal('Sucesso!', 'Pagamento registrado com sucesso!', () => {});
+        showModal('Sucesso!', 'Pagamento registrado com sucesso!', () => hideModal());
         customerToPayId = null;
 
     } catch (err) {
         console.error("Erro ao registrar pagamento:", err);
-        // Não esconde o modal para que o usuário veja o erro.
         errorMessage.textContent = "Erro ao registrar pagamento. Tente novamente.";
         errorMessage.classList.remove('hidden');
     }
@@ -306,6 +298,7 @@ const loadProducts = () => {
 const displayProducts = (products) => {
     const tableBody = document.getElementById('products-table-body');
     const noProductsMessage = document.getElementById('no-products-message');
+    if (!tableBody || !noProductsMessage) return;
     tableBody.innerHTML = '';
     noProductsMessage.classList.toggle('hidden', products.length > 0);
     products.forEach(product => {
@@ -343,10 +336,10 @@ const handleProductSubmit = async (event) => {
     try {
         if (productId) {
             await updateDoc(doc(window.db, "products", productId), productData);
-            showModal('Sucesso!', `O produto "${productData.name}" foi atualizado.`, () => {});
+            showModal('Sucesso!', `O produto "${productData.name}" foi atualizado.`, () => hideModal());
         } else {
             await addDoc(collection(window.db, "products"), productData);
-            showModal('Sucesso!', `O produto "${productData.name}" foi adicionado.`, () => {});
+            showModal('Sucesso!', `O produto "${productData.name}" foi adicionado.`, () => hideModal());
         }
         cancelEditProduct();
     } catch (err) {
@@ -420,6 +413,7 @@ const loadCustomers = () => {
 const displayCustomers = (customers) => {
     const tableBody = document.getElementById('customers-table-body');
     const noCustomersMessage = document.getElementById('no-customers-message');
+    if (!tableBody || !noCustomersMessage) return;
     tableBody.innerHTML = '';
     noCustomersMessage.classList.toggle('hidden', customers.length > 0);
     customers.forEach(customer => {
@@ -455,10 +449,10 @@ const handleCustomerSubmit = async (event) => {
     try {
         if (customerId) {
             await updateDoc(doc(window.db, "customers", customerId), customerData);
-            showModal('Sucesso!', `O cliente "${customerData.name}" foi atualizado.`, () => {});
+            showModal('Sucesso!', `O cliente "${customerData.name}" foi atualizado.`, () => hideModal());
         } else {
             await addDoc(collection(window.db, "customers"), customerData);
-            showModal('Sucesso!', `O cliente "${customerData.name}" foi adicionado.`, () => {});
+            showModal('Sucesso!', `O cliente "${customerData.name}" foi adicionado.`, () => hideModal());
         }
         cancelEditCustomer();
     } catch (err) {
@@ -552,7 +546,7 @@ const handleBarcodeScan = (event) => {
         if (product) {
             window.addToCart(product.id);
         } else {
-            showModal('Produto não encontrado', `Nenhum produto com o código de barras "${barcode}" foi encontrado.`, () => {});
+            showModal('Produto não encontrado', `Nenhum produto com o código de barras "${barcode}" foi encontrado.`, () => hideModal());
         }
         event.target.value = '';
     }
@@ -566,13 +560,13 @@ window.addToCart = (productId) => {
         if (itemInCart.quantityInCart < product.quantity) {
             itemInCart.quantityInCart++;
         } else {
-            showModal('Estoque Insuficiente', `Não há mais estoque para ${product.name}.`, () => {});
+            showModal('Estoque Insuficiente', `Não há mais estoque para ${product.name}.`, () => hideModal());
         }
     } else {
         if (product.quantity > 0) {
             saleCart.push({ ...product, quantityInCart: 1 });
         } else {
-            showModal('Fora de Estoque', `O produto ${product.name} está fora de estoque.`, () => {});
+            showModal('Fora de Estoque', `O produto ${product.name} está fora de estoque.`, () => hideModal());
         }
     }
     updateCartDisplay();
@@ -679,7 +673,7 @@ window.processSale = async () => {
         saleCart = [];
         updateCartDisplay();
         updateProcessSaleButtonState();
-        showModal('Venda Realizada!', 'A venda foi processada com sucesso!', () => {});
+        showModal('Venda Realizada!', 'A venda foi processada com sucesso!', () => hideModal());
 
     } catch (err) {
         console.error("Erro ao processar venda:", err);
@@ -690,6 +684,11 @@ window.processSale = async () => {
 
 const loadProductsForSale = () => {
     onSnapshot(collection(window.db, "products"), (snapshot) => {
+        // --- INÍCIO DA CORREÇÃO ---
+        // Só atualiza a lista de produtos se a view de Vendas estiver ativa
+        if (!document.getElementById('available-products-list')) return;
+        // --- FIM DA CORREÇÃO ---
+
         currentProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         displayAvailableProducts(currentProducts);
     }, (err) => console.error("Erro ao carregar produtos para venda:", err));
@@ -697,6 +696,7 @@ const loadProductsForSale = () => {
 
 const displayAvailableProducts = (products) => {
     const list = document.getElementById('available-products-list');
+    if (!list) return;
     list.innerHTML = '';
     const available = products.filter(p => p.quantity > 0);
     document.getElementById('no-available-products-message').classList.toggle('hidden', available.length > 0);
@@ -717,9 +717,15 @@ const displayAvailableProducts = (products) => {
 
 const loadCustomersForSale = () => {
     onSnapshot(collection(window.db, "customers"), (snapshot) => {
-        const customers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        currentCustomers = customers; // Atualiza a lista global de clientes
         const select = document.getElementById('sale-customer-select');
+        // --- INÍCIO DA CORREÇÃO ---
+        // Só atualiza o select de clientes se a view de Vendas estiver ativa
+        if (!select) return;
+        // --- FIM DA CORREÇÃO ---
+
+        const customers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        currentCustomers = customers; 
+        
         select.innerHTML = '<option value="">Selecione um cliente</option>';
         customers.forEach(customer => {
             select.innerHTML += `<option value="${customer.id}">${customer.name}</option>`;
