@@ -116,7 +116,19 @@ const showModal = (title, message, onConfirm, onCancel = null, confirmText = 'Co
     const confirmBtn = document.getElementById('modal-confirm-btn');
     const cancelBtn = document.getElementById('modal-cancel-btn');
     confirmBtn.textContent = confirmText;
-    confirmBtn.onclick = () => { hideModal(); if (onConfirm) onConfirm(); };
+
+    // --- CORREÇÃO ESTÁ AQUI ---
+    // A função onConfirm (handlePay) deve ser chamada ANTES de hideModal.
+    confirmBtn.onclick = () => { 
+        if (onConfirm) {
+            onConfirm(); 
+        }
+        // Apenas esconde o modal principal se não for uma mensagem de sucesso/erro
+        if(onCancel !== null){
+             hideModal();
+        }
+    };
+    
     cancelBtn.style.display = onCancel ? 'inline-block' : 'none';
     if (onCancel) {
         cancelBtn.textContent = cancelText;
@@ -124,6 +136,7 @@ const showModal = (title, message, onConfirm, onCancel = null, confirmText = 'Co
     }
     modal.classList.remove('hidden');
 };
+
 
 const hideModal = () => {
     const modal = document.getElementById('custom-modal');
@@ -182,32 +195,48 @@ window.confirmDeleteCustomer = (customerId, customerName) => showModal('Confirma
 
 const handlePay = async () => {
     const paymentAmountInput = document.getElementById('payment-amount');
-    const paymentAmount = parseFloat(paymentAmountInput.value);
-    const customer = currentCustomers.find(c => c.id === customerToPayId);
-    if (isNaN(paymentAmount) || paymentAmount <= 0 || paymentAmount > customer.totalDue) {
-        document.getElementById('payment-error-message').textContent = "Valor de pagamento inválido.";
-        document.getElementById('payment-error-message').classList.remove('hidden');
+    const errorMessage = document.getElementById('payment-error-message');
+    
+    // Verifica se os elementos existem antes de usá-los
+    if (!paymentAmountInput || !errorMessage) {
+        console.error("Elementos do modal de pagamento não encontrados.");
         return;
     }
+
+    const paymentAmount = parseFloat(paymentAmountInput.value);
+    const customer = currentCustomers.find(c => c.id === customerToPayId);
+
+    if (isNaN(paymentAmount) || paymentAmount <= 0 || !customer || paymentAmount > customer.totalDue) {
+        errorMessage.textContent = "Valor de pagamento inválido.";
+        errorMessage.classList.remove('hidden');
+        return;
+    }
+
     try {
         const newTotalDue = (customer.totalDue || 0) - paymentAmount;
         await updateDoc(doc(window.db, "customers", customerToPayId), { totalDue: newTotalDue });
         
         await addDoc(collection(window.db, "transactions"), {
-            type: 'payment', customerId: customerToPayId, customerName: customer.name, amount: paymentAmount, date: new Date().toISOString(),
+            type: 'payment',
+            customerId: customerToPayId,
+            customerName: customer.name,
+            amount: paymentAmount,
+            date: new Date().toISOString(),
         });
 
-        // Força a atualização da dívida na interface
-        customer.totalDue = newTotalDue;
-        displayCustomers(currentCustomers);
-        
+        // Esconde o modal de pagamento e mostra o de sucesso.
+        hideModal();
         showModal('Sucesso!', 'Pagamento registrado com sucesso!', () => {});
         customerToPayId = null;
+
     } catch (err) {
         console.error("Erro ao registrar pagamento:", err);
-        showModal('Erro!', 'Erro ao registrar pagamento.', null, () => {});
+        // Não esconde o modal para que o usuário veja o erro.
+        errorMessage.textContent = "Erro ao registrar pagamento. Tente novamente.";
+        errorMessage.classList.remove('hidden');
     }
 };
+
 window.openPayModal = (customerId) => {
     const customer = currentCustomers.find(c => c.id === customerId);
     if (!customer) return;
